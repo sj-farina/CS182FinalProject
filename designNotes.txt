@@ -1,0 +1,16 @@
+11-28-16
+
+Actions: seems pretty self explanatory, theres really only three things you can do, buy(x number), sell(x number), hold
+
+	-- x number should probably be based off of our certainty of a prediction. For example, if we are 80% certain our stock is about to fall, we might sell 80% of our stock. Or some such correlation, probably more complex...
+
+States: So I'm thinking we want a multi dimensional state to include all our factors. 
+	the things I've thought of so far =
+		current stock price
+		current compared to short term average of last x time
+		current compared to long term average of last x time
+		short term trend = (lightly smoothed?) derivative at point
+		long term trend = (heavily smoothed?) derivative at point
+
+Rewards: the portfolio value
+

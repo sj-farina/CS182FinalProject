@@ -1,8 +1,10 @@
 ########################################
+# CS182 Final Project, Fall 2016
+# Anita Xu & Janey Farina
 #
 # Random walk will show the affects of randomly 
 # buying selling or holding at each time point.
-# This is to be usedd as a baseline against 
+# This is to be used as a baseline against 
 # which our agent can be compared
 #
 ########################################
@@ -12,12 +14,13 @@ import matplotlib.pyplot as plt
 import random as rand
 
 
-# initilize the starting number of stocks and the starting bank ballance
+# Initialize the starting number of stocks and the starting bank balance
 START_BANK = 100
 START_STOCK = 100
+INFILE = 'BA_2Y_14_15.csv'
 
 
-# testing paramaters to be tuned by user
+# testing parameters to be tuned by user
 MAX_SELL = 50
 MIN_SELL = 1
 TRIALS = 50
@@ -28,7 +31,7 @@ def loadData(file):
 	return np.genfromtxt(file, delimiter=',', skip_header=1,
             skip_footer=1, names=['date', 'open', 'high', 'low', 'close', 'adj'])
 
-# buys num_to_trade number of stocks and updatets bank ballance accordingly, debt is allowed
+# buys num_to_trade number of stocks and updates bank balance accordingly, debt is allowed
 def buy(time_index, num_to_trade = 1):
 	global stocks_held, bank_ballance
 	stocks_held += num_to_trade
@@ -36,7 +39,7 @@ def buy(time_index, num_to_trade = 1):
 	portfolio.append(stocks_held*stock['open'][time_index] + bank_ballance)
 
 
-# sells num_to_trade number of stocks and updatets bank ballance accordingly, 
+# sells num_to_trade number of stocks and updates bank balance accordingly, 
 # selling more than you own is not permitted
 def sell(time_index, num_to_trade = 1):
 	global stocks_held, bank_ballance
@@ -53,7 +56,7 @@ def sell(time_index, num_to_trade = 1):
 		portfolio.append(stocks_held*stock['open'][time_index] + bank_ballance)
 
 
-# appends the same value to ballance
+# appends the same value to balance
 def hold(time_index):
 	portfolio.append(stocks_held*stock['open'][time_index] + bank_ballance)
 
@@ -87,14 +90,10 @@ def randomWalk(stock):
 ###########
 
 
-# pick the data file to read from
-stock = loadData('BA_2Y_14_15.csv')
+# Pick the data file to read from
+stock = loadData(INFILE)
 
-
-
-# print portfolio
-# plotData(stock['open'], portfolio)
-
+# Setting up the plot
 fig = plt.figure()
 ax1 = fig.add_subplot(211)
 ax2 = fig.add_subplot(212)
@@ -104,6 +103,7 @@ ax1.set_ylabel('price')
 ax2.set_title("Portfolio Value")    
 ax2.set_xlabel('time')
 ax2.set_ylabel('value')
+
 ax1.plot(range(len(stock['open'])), stock['open'], color='r', label='Stock Price')
 
 for each in range(TRIALS):
@@ -111,5 +111,6 @@ for each in range(TRIALS):
 	ax2.plot(range(len(rand_port)), rand_port, label='Portfolio Value')
 
 leg = ax1.legend()
+# leg = ax2.legend()
 plt.show()
 

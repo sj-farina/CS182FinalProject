@@ -17,7 +17,11 @@ import random as rand
 # Initialize the starting number of stocks and the starting bank balance
 START_BANK = 100
 START_STOCK = 100
-INFILE = 'BA_2Y_14_15.csv'
+# INFILE = 'BA_6M_15.csv'
+INFILE = 'BA_1Y_15.csv'
+# INFILE = 'BA_2Y_14_15.csv'
+# INFILE = 'BA_5Y_11_15.csv'
+# INFILE = 'BA_15Y_01_15.csv'
 
 
 # testing parameters to be tuned by user
@@ -73,14 +77,10 @@ def randomWalk(stock):
 		rand_to_trade = rand.randint(MIN_SELL, MAX_SELL)
 		#wtf? why does python not have switch statements?
 		if rand_num == 0:
-			print 'sell'
 			sell(i, rand_to_trade)
 		elif rand_num == 1:
-			print 'hold'
-			print stocks_held
 			hold(i)
 		elif rand_num == 2:
-			print 'buy'
 			buy(i, rand_to_trade)
 
 	return portfolio

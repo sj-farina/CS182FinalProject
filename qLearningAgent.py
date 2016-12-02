@@ -5,15 +5,14 @@
 # Q-Learning Agent for 182 final project
 # Version 1
 # Code modeled after CS182 Pset 3
-# 
+#
 ########################################
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.collections  as mc
 import random as rd
-import math
-import collections 
+import math, collections, sys
 
 # Pick the file to read from
 INFILE = 'BA_6M_15.csv'
@@ -32,6 +31,7 @@ EPSILON = 1
 ALPHA = 1
 DISCOUNT = 1
 ITERATIONS = 10
+LOOKAHEAD = 5
 
 # Helpers and things
 stocks_held = START_STOCK
@@ -62,12 +62,12 @@ def getShortTermTrend(cur_time):
         return 10
     if slope < -10:
         return -10
-    return rlope
+    return slope
 
 # Determine which actions are available given stocks held and bank balance
 def getLegalActions(cur_time):
     # For the simplest case, lets just say all actions are always valid
-    return [buy, sell, hold]
+    return ['buy', 'sell', 'hold']
 
     # # If you have no $$ and no stocks, you can't do anything
     # if bank_ballance <= 0:
@@ -83,31 +83,48 @@ def getLegalActions(cur_time):
 # Reward is the difference between current portfolio and next portfolio
 def getReward(cur_time, action):
     if action == 'buy':
-        return data_set[cur_time + 5] - data_set[cur_time] 
+        return data_set[cur_time + LOOKAHEAD] - data_set[cur_time] 
     elif action == 'sell':
-        return -(data_set[cur_time + 5] - data_set[cur_time])
+        return -(data_set[cur_time + LOOKAHEAD] - data_set[cur_time])
     elif action == 'hold':
         return 0
     
 # Pick the action to take based on epsilon and best action
-def pickAction(state):
-    legalActions = getLegalActions()  
+def pickAction(state, cur_time):
+    legalActions = getLegalActions(cur_time)  
     if (rd.random() < EPSILON):
         return rd.choice(legalActions)
-    return getBestAction(state)
+    return getBestAction(state, cur_time)
 
 # Determine the best possible action based on the stored values information 
-def getBestAction(cur_time):
-    pass
+def getBestAction(state, cur_time):
+    bestScore = -sys.maxint - 1
+    # Default to hold as the most neutral choice
+    bestAction = 'hold'
+
+    for action in getLegalActions(cur_time):
+        score = values[state,action]
+        if score > bestScore:
+            bestScore = score
+            bestAction = action
+
+    return bestAction
+
+
 # Determine the best possible "score" from a given state
-def getMaxStateValue():
-    pass
+def getMaxStateValue(state, cur_time):
+    bestScore = -sys.maxint - 1
+    for action in getLegalActions(cur_time):
+        score = values[state,action]
+        if score > bestScore:
+            bestScore = score
+    return bestScore
 
 
 # Update our qvalue array
-def update(state, action, nextState, reward):
+def update(cur_time, state, action, nextState, reward):
     values[state,action] = values[state,action] + ALPHA * (reward +
-        DISCOUNT * computeValueFromQValues(nextState) - values[state,action])
+        DISCOUNT * getMaxStateValue(nextState, cur_time +1) - values[state,action])
 
 
 
@@ -122,12 +139,12 @@ values = collections.Counter()
 # How many times should we run this?
 for i in range(ITERATIONS):
     # Iterates over array, time (cur_time) is arbitrary, two points per day
-    for cur_time in range(len(data_set)):
+    for cur_time in range(len(data_set) - LOOKAHEAD):
         state = getShortTermTrend(cur_time)
         nextState = getShortTermTrend(cur_time+1)
-        action = getBestAction(cur_time)
+        action = pickAction(state, cur_time)
         reward = getReward(cur_time, action)
-        update(state, action, nextState, reward)
+        update(cur_time, state, action, nextState, reward)
 
 
 

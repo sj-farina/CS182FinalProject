@@ -2,7 +2,7 @@
 # CS182 Final Project, Fall 2016
 # Anita Xu & Janey Farina
 #
-# Q-Learning Agent for 182 final project
+# Approximate Q-Learning Agent for 182 final project
 # Code modeled after CS182 Pset 3
 #
 ########################################
@@ -23,6 +23,8 @@ TESTING = 0
 # INFILE = 'BA_2Y_14_15.csv'
 # INFILE = 'BA_5Y_11_15.csv'
 INFILE = 'BA_15Y_01_15.csv'
+
+TESTFILE = 'BA_1Y_15.csv'
 
 
 # Initialize the starting number of stocks and the starting bank balance
@@ -56,20 +58,6 @@ def loadData(file):
 ########################################
 # Q LEARNING CODE 
 ########################################
-
-# Find the slope between this point and the last
-def getShortTermTrend(cur_time):
-    # # if this is the first data point, assume a slope of zero
-    # if cur_time == 0:
-    #     return 0
-    # Multiply by 100, set to int, equiv of truncating at 1 decimals
-    slope = int((data_set[cur_time] - data_set[cur_time - LOOKAHEAD]) * 100)
-    # Cap -10 to 10 to limit state space
-    if slope > 10:
-        return 10
-    if slope < -10:
-        return -10
-    return slope
 
 # Determine which actions are available given stocks held and bank balance
 def getLegalActions(cur_time):
@@ -114,7 +102,6 @@ def getBestAction(state, cur_time):
         if score > bestScore:
             bestScore = score
             bestAction = action
-
     return bestAction
 
 
@@ -128,10 +115,63 @@ def getMaxStateValue(state, cur_time):
     return bestScore
 
 
-# Update our qvalue array
-def update(cur_time, state, action, nextState, reward):
-    values[state,action] = values[state,action] + ALPHA * (reward +
-        DISCOUNT * getMaxStateValue(nextState, cur_time +1) - values[state,action])
+
+# Find the slope between this point and the last
+def pointSlope(cur_time, span):
+    # # if this is the first data point, assume a slope of zero
+    # if cur_time == 0:
+    #     return 0
+
+    # Multiply by 100, set to int, equiv of truncating at 2 decimals
+    slope = int((data_set[cur_time] - data_set[cur_time - LOOKAHEAD]) * 100)
+    # Cap -10 to 10 to limit state space
+    if slope > 10:
+        return 10
+    if slope < -10:
+        return -10
+    return slope
+
+# Returns average
+def avgSlope(cur_time, span):
+
+# Returns difference between current value and mean of last "span" points 
+def meanDiff(cur_time, span):
+    pass
+
+
+# Extract the features at the current time point
+def getFeatures(cur_time):
+    pass
+
+    features{pointSlopeLocal} = 
+    features{pointSlopeLong} = 
+    features{avgSlopeLocal} = 
+    features{avgSlopeLong} = 
+    features{meanDiff} = 
+
+
+
+
+
+# Determine the q value from (weights (dot) features)
+def getQValue():
+    pass
+
+    # qvalues = 0.0
+    # features = getFeatures(cur_time, )
+    # weights = 
+    # for feature in features:
+    #     qvalues += features[feature] * weights[feature]
+
+    # return qvalues
+
+
+# Update our the weights given a transition
+def update(cur_time, action, reward):
+    pass
+
+
+
 
 
 ########################################
@@ -185,19 +225,19 @@ if (TRAINING):
     for i in range(ITERATIONS):
         # Iterates over array, time (cur_time) is arbitrary, two points per day
         for cur_time in range(LOOKAHEAD, len(data_set) - 2*LOOKAHEAD):
-            state = getShortTermTrend(cur_time)
-            nextState = getShortTermTrend(cur_time+1)
+            # state = getShortTermTrend(cur_time)
+            # nextState = getShortTermTrend(cur_time+1)
             action = pickAction(state, cur_time)
             reward = getReward(cur_time, action)
-            update(cur_time, state, action, nextState, reward)
+            update(cur_time, action, nextState, reward)
+
 # TODO: Make this selectable from cmdline and save/load trained dataset elsewhere
     TRAINING = 0
     TESTING = 1
     print values
-INFILE = 'BA_6M_15.csv'
-# INFILE = 'BA_1Y_15.csv'
-# INFILE = 'BA_2Y_14_15.csv'
-data_set = loadData(INFILE)
+
+
+data_set = loadData(TESTFILE)
 
 
 if (TESTING):
@@ -211,7 +251,7 @@ if (TESTING):
         tradeStocks(cur_time, action)
 
 else:
-    print "What are you doing dude?"
+    print "Please Specify Training -train or Testing -test"
 
 
 ########################################

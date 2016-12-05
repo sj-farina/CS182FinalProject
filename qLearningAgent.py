@@ -29,14 +29,6 @@ INFILE = 'BA_15Y_01_13.csv'
 START_BANK = 10000
 START_STOCK = 0
 
-# Training variables
-
-EPSILON = 0.01
-ALPHA = 1
-DISCOUNT = 1
-ITERATIONS = 100
-LOOKAHEAD = 20
-
 # Helpers and things
 stocks_held = START_STOCK
 bank_balance = START_BANK
@@ -179,10 +171,28 @@ def tradeStocks(cur_time, action):
 ########################################
 # MAIN CODE 
 ########################################
+# Training variables
 
-data_set = loadData(INFILE)
-values = collections.Counter()
-if (TRAINING):
+EPSILON = 0.05
+alpha = [0,0.1,0.2,0.5,1]
+DISCOUNT = 0.8
+ITERATIONS = 100
+LOOKAHEAD = 20
+
+# Optional plot for reference
+fig = plt.figure()
+ax1 = fig.add_subplot(311)
+ax2 = fig.add_subplot(312)
+
+
+
+
+for i in alpha:
+    ALPHA = i
+    
+    values = collections.Counter()
+    INFILE = 'BA_15Y_01_13.csv'
+    data_set = loadData(INFILE)
     print 'Im training'
     # How many times should we run this?
     for i in range(ITERATIONS):
@@ -193,17 +203,15 @@ if (TRAINING):
             action = pickAction(state, cur_time)
             reward = getReward(cur_time, action)
             update(cur_time, state, action, nextState, reward)
-# TODO: Make this selectable from cmdline and save/load trained dataset elsewhere
-    TRAINING = 0
-    TESTING = 1
-    # print values
-# INFILE = 'BA_6M_15.csv'
-# INFILE = 'BA_1Y_15.csv'
-# INFILE = 'BA_2Y_14_15.csv'
-data_set = loadData(INFILE)
 
 
-if (TESTING):
+        # print values
+    # INFILE = 'BA_6M_15.csv'
+    # INFILE = 'BA_1Y_15.csv'
+    INFILE = 'BA_2Y_14_15.csv'
+    data_set = loadData(INFILE)
+
+
     print 'im testing'
     stocks_held = START_STOCK
     bank_balance = START_BANK
@@ -212,24 +220,117 @@ if (TESTING):
         state = getShortTermTrend(cur_time)
         action = getBestAction(state, cur_time)
         tradeStocks(cur_time, action)
-        print (state,action,stocks_held,bank_balance,portfolio[-1])
-else:
-    print "What are you doing dude?"
+        #print (state,action,stocks_held,bank_balance,portfolio[-1])
+    ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
 
+ax1.plot(range(len(data_set)), data_set, color='r', label='Stock Price')
+ax2.legend(alpha, loc='best')
+# plt.show()
 
 ########################################
 # DISPLAY CODE 
 ########################################
 
-# Optional plot for reference
-fig = plt.figure()
-ax1 = fig.add_subplot(211)
-ax2 = fig.add_subplot(212)
 
-ax1.plot(range(len(data_set)), data_set, color='r', label='Stock Price')
 
-ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
+# Initialize the starting number of stocks and the starting bank balance
+START_BANK = 10000
+START_STOCK = 0
+# INFILE = 'BA_6M_15.csv'
+# INFILE = 'BA_1Y_15.csv'
+INFILE = 'BA_2Y_14_15.csv'
+# INFILE = 'BA_5Y_11_15.csv'
+# INFILE = 'BA_15Y_01_15.csv'
 
+
+# testing parameters to be tuned by user
+MAX_SELL = 50
+MIN_SELL = 1
+TRIALS = 10
+
+
+# load the training file
+def loadData(file):
+    return np.genfromtxt(file, delimiter=',', skip_header=1,
+            skip_footer=1, names=['date', 'open', 'high', 'low', 'close', 'adj'])
+
+# buys num_to_trade number of stocks and updates bank balance accordingly, debt is allowed
+def buy(time_index, num_to_trade = 1):
+    global stocks_held, bank_balance
+    if (num_to_trade*stock['open'][time_index] > bank_balance):
+        num_to_trade = int(bank_balance)/int(stock['open'][time_index])
+    stocks_held += num_to_trade
+    bank_balance -= num_to_trade*stock['open'][time_index]
+    portfolio.append(stocks_held*stock['open'][time_index] + bank_balance)
+
+
+# sells num_to_trade number of stocks and updates bank balance accordingly, 
+# selling more than you own is not permitted
+def sell(time_index, num_to_trade = 1):
+    global stocks_held, bank_balance
+
+    if stocks_held <= 0:
+        hold(time_index)
+    else:
+        if ((stocks_held - num_to_trade) <= 0): 
+            bank_balance += stocks_held*stock['open'][time_index]
+            stocks_held = 0
+        else:
+            stocks_held -= num_to_trade
+            bank_balance += num_to_trade*stock['open'][time_index]
+        portfolio.append(stocks_held*stock['open'][time_index] + bank_balance)
+
+
+# appends the same value to balance
+def hold(time_index):
+    portfolio.append(stocks_held*stock['open'][time_index] + bank_balance)
+
+
+def randomWalk(stock):
+    global stocks_held, bank_balance, portfolio
+    stocks_held = START_STOCK
+    bank_balance = START_BANK
+    portfolio = []
+
+    for i in range(len(stock['open'])):
+        rand_num = rd.randint(0,2)
+        # rand_to_trade = 1
+        rand_to_trade = rd.randint(MIN_SELL, MAX_SELL)
+        #wtf? why does python not have switch statements?
+        if rand_num == 0:
+            sell(i, rand_to_trade)
+        elif rand_num == 1:
+            hold(i)
+        elif rand_num == 2:
+            buy(i, rand_to_trade)
+        print(rand_num,stocks_held,bank_balance,portfolio[-1])
+    return portfolio
+
+###########
+# Main code
+###########
+
+
+# Pick the data file to read from
+stock = loadData(INFILE)
+
+# Setting up the plot
+# fig = plt.figure()
+# ax1 = fig.add_subplot(211)
+ax3 = fig.add_subplot(313)
+ax3.set_title("Stock Value")    
+ax3.set_xlabel('time')
+ax3.set_ylabel('price')
+ax3.set_title("Portfolio Value")    
+ax3.set_xlabel('time')
+ax3.set_ylabel('value')
+
+for each in range(TRIALS):
+    rand_port = randomWalk(stock)
+    ax3.plot(range(len(rand_port)), rand_port, label='Portfolio Value')
+
+# leg = ax3.legend()
+# leg = ax2.legend()
 plt.show()
 
 

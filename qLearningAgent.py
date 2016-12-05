@@ -14,15 +14,15 @@ import random as rd
 import math, collections, sys
 
 # Are you training or testing???
-TRAINING = 1
-TESTING = 0
+TRAINING = 0
+TESTING = 1
 
 # Pick the file to read from
 # INFILE = 'BA_6M_15.csv'
 # INFILE = 'BA_1Y_15.csv'
 # INFILE = 'BA_2Y_14_15.csv'
-# INFILE = 'BA_5Y_11_15.csv'
-INFILE = 'BA_15Y_01_13.csv'
+INFILE = 'BA_5Y_11_15.csv'
+# INFILE = 'BA_15Y_01_13.csv'
 
 
 # Initialize the starting number of stocks and the starting bank balance
@@ -34,7 +34,7 @@ START_STOCK = 0
 EPSILON = 0.01
 ALPHA = 1
 DISCOUNT = 1
-ITERATIONS = 100
+ITERATIONS = 10
 LOOKAHEAD = 20
 
 # Helpers and things
@@ -194,16 +194,21 @@ if (TRAINING):
             reward = getReward(cur_time, action)
             update(cur_time, state, action, nextState, reward)
 # TODO: Make this selectable from cmdline and save/load trained dataset elsewhere
-    TRAINING = 0
-    TESTING = 1
-    # print values
+    print 'in', values
+    f = open('valueFile', 'w')
+    f.write(str(values))
+
 # INFILE = 'BA_6M_15.csv'
 # INFILE = 'BA_1Y_15.csv'
 # INFILE = 'BA_2Y_14_15.csv'
-data_set = loadData(INFILE)
 
 
-if (TESTING):
+elif (TESTING):
+    s = open('valueFile', 'r').read()
+    values = eval(s)
+    print 'out', values
+    data_set = loadData(INFILE)
+
     print 'im testing'
     stocks_held = START_STOCK
     bank_balance = START_BANK

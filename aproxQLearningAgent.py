@@ -123,7 +123,7 @@ def pointSlope(cur_time, span):
     #     return 0
 
     # Multiply by 100, set to int, equiv of truncating at 2 decimals
-    slope = int((data_set[cur_time] - data_set[cur_time - LOOKAHEAD]) * 100)
+    slope = int((data_set[cur_time] - data_set[cur_time - span]) * 100)
     # Cap -10 to 10 to limit state space
     if slope > 10:
         return 10
@@ -133,20 +133,28 @@ def pointSlope(cur_time, span):
 
 # Returns average
 def avgSlope(cur_time, span):
+    for i in range(span)
+
+    pass
 
 # Returns difference between current value and mean of last "span" points 
 def meanDiff(cur_time, span):
-    pass
+    avg = 0.0
+    for i in range(span):
+        if (cur_time - i) > 0:
+            avg += data_set[cur_time - i]
+    avg = avg / span
+    return data_set[cur_time] - avg
+
+
 
 
 # Extract the features at the current time point
 def getFeatures(cur_time):
     pass
-
-    features{pointSlopeLocal} = 
-    features{pointSlopeLong} = 
+    features{price} = data_set[cur_time]
+    features{pointSlopeLocal} = pointSlope(cur_time, )
     features{avgSlopeLocal} = 
-    features{avgSlopeLong} = 
     features{meanDiff} = 
 
 

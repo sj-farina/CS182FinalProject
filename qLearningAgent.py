@@ -196,13 +196,8 @@ if (TRAINING):
 # TODO: Make this selectable from cmdline and save/load trained dataset elsewhere
     TRAINING = 0
     TESTING = 1
-<<<<<<< HEAD
     # print values
 # INFILE = 'BA_6M_15.csv'
-=======
-    print values
-INFILE = 'BA_6M_15.csv'
->>>>>>> 9a84106dd17eb682aa47c73310219ca0dbd36890
 # INFILE = 'BA_1Y_15.csv'
 # INFILE = 'BA_2Y_14_15.csv'
 data_set = loadData(INFILE)

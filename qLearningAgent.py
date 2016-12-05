@@ -23,23 +23,23 @@ TESTING = 0
 # INFILE = 'BA_1Y_15.csv'
 # INFILE = 'BA_2Y_14_15.csv'
 # INFILE = 'BA_5Y_11_15.csv'
-INFILE = 'BA_15Y_01_15.csv'
+INFILE = 'BA_15Y_01_13.csv'
 
 
 # Initialize the starting number of stocks and the starting bank balance
-START_BANK = 100
-START_STOCK = 100
+START_BANK = 10000
+START_STOCK = 0
 
 # Training variables
-EPSILON = .3
-ALPHA = .5
-DISCOUNT = .5
-ITERATIONS = 10
-LOOKAHEAD = 50
+EPSILON = 0.01
+ALPHA = 1
+DISCOUNT = 1
+ITERATIONS = 100
+LOOKAHEAD = 20
 
 # Helpers and things
 stocks_held = START_STOCK
-bank_ballance = START_BANK
+bank_balance = START_BANK
 portfolio = []
 qvalues = [] 
 
@@ -64,12 +64,12 @@ def getShortTermTrend(cur_time):
     # if cur_time == 0:
     #     return 0
     # Multiply by 100, set to int, equiv of truncating at 1 decimals
-    slope = int((data_set[cur_time] - data_set[cur_time - LOOKAHEAD]) * 100)
+    slope = int((data_set[cur_time] - data_set[cur_time - LOOKAHEAD])*5)
     # Cap -10 to 10 to limit state space
-    if slope > 10:
-        return 10
-    if slope < -10:
-        return -10
+    if slope > 50:
+        return 50
+    if slope < -50:
+        return -50
     return slope
 
 # Determine which actions are available given stocks held and bank balance
@@ -78,7 +78,7 @@ def getLegalActions(cur_time):
     return ['buy', 'sell', 'hold']
 
     # # If you have no $$ and no stocks, you can't do anything
-    # if bank_ballance <= 0:
+    # if bank_balance <= 0:
     #     if stocks_held <= 0:
     #         return [hold]
     #     return [sell, hold]
@@ -141,26 +141,28 @@ def update(cur_time, state, action, nextState, reward):
 
 # buys num_to_trade number of stocks and updates bank balance accordingly, debt is allowed
 def buy(cur_time, num_to_trade = 10):
-    global stocks_held, bank_ballance
+    global stocks_held, bank_balance
+    if num_to_trade*data_set[cur_time] > bank_balance:
+        num_to_trade = int(bank_balance)/int(data_set[cur_time])
     stocks_held += num_to_trade
-    bank_ballance -= num_to_trade*data_set[cur_time]
-    portfolio.append(stocks_held*data_set[cur_time] + bank_ballance)
+    bank_balance -= num_to_trade*data_set[cur_time]
+    portfolio.append(stocks_held*data_set[cur_time] + bank_balance)
 
 
 # sells num_to_trade number of stocks and updates bank balance accordingly, 
 def sell(cur_time, num_to_trade = 10):
-    global stocks_held, bank_ballance
+    global stocks_held, bank_balance
     if ((stocks_held - num_to_trade) <= 0): 
-        bank_ballance += stocks_held*data_set[cur_time]
+        bank_balance += stocks_held*data_set[cur_time]
         stocks_held = 0
     else:
         stocks_held -= num_to_trade
-        bank_ballance += num_to_trade*data_set[cur_time]
-    portfolio.append(stocks_held*data_set[cur_time] + bank_ballance)
+        bank_balance += num_to_trade*data_set[cur_time]
+    portfolio.append(stocks_held*data_set[cur_time] + bank_balance)
 
 # appends the current value to balance
 def hold(cur_time):
-    portfolio.append(stocks_held*data_set[cur_time] + bank_ballance)
+    portfolio.append(stocks_held*data_set[cur_time] + bank_balance)
 
 
 def tradeStocks(cur_time, action):
@@ -194,7 +196,7 @@ if (TRAINING):
 # TODO: Make this selectable from cmdline and save/load trained dataset elsewhere
     TRAINING = 0
     TESTING = 1
-    print values
+    # print values
 # INFILE = 'BA_6M_15.csv'
 # INFILE = 'BA_1Y_15.csv'
 INFILE = 'BA_2Y_14_15.csv'
@@ -204,13 +206,13 @@ data_set = loadData(INFILE)
 if (TESTING):
     print 'im testing'
     stocks_held = START_STOCK
-    bank_ballance = START_BANK
+    bank_balance = START_BANK
     portfolio = []
     for cur_time in range(len(data_set)):
         state = getShortTermTrend(cur_time)
         action = getBestAction(state, cur_time)
         tradeStocks(cur_time, action)
-
+        print (state,action,stocks_held,bank_balance,portfolio[-1])
 else:
     print "What are you doing dude?"
 
@@ -223,6 +225,7 @@ ax1 = fig.add_subplot(211)
 ax2 = fig.add_subplot(212)
 
 ax1.plot(range(len(data_set)), data_set, color='r', label='Stock Price')
+
 ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
 
 plt.show()

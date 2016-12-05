@@ -13,23 +13,17 @@ import matplotlib.collections  as mc
 import random as rd
 import math, collections, sys
 
-# Are you training or testing???
-TRAINING = 1
-TESTING = 0
-
 # Pick the file to read from
 # INFILE = 'BA_6M_15.csv'
 # INFILE = 'BA_1Y_15.csv'
 # INFILE = 'BA_2Y_14_15.csv'
 # INFILE = 'BA_5Y_11_15.csv'
-INFILE = 'BA_15Y_01_15.csv'
-
-TESTFILE = 'BA_1Y_15.csv'
+INFILE = 'BA_15Y_01_13.csv'
 
 # Feature 
-RUNNING_SPAN = 200
+RUNNING_SPAN = 50
 LOCAL_SPAN = 10
-NUM_FEATS = 4
+NUM_FEATS = 3
 
 
 # Initialize the starting number of stocks and the starting bank balance
@@ -37,11 +31,11 @@ START_BANK = 10000
 START_STOCK = 0
 
 # Training variables
-EPSILON = .3
-ALPHA = .5
-DISCOUNT = .7
+EPSILON = .05
+ALPHA = .2
+DISCOUNT = .8
 ITERATIONS = 10
-LOOKAHEAD = 50
+LOOKAHEAD = 20
 
 # Helpers and things
 stocks_held = START_STOCK
@@ -69,15 +63,15 @@ def getLegalActions(cur_time):
     # For the simplest case, lets just say all actions are always valid
     return ['buy', 'sell', 'hold']
 
-    # # If you have no $$ and no stocks, you can't do anything
-    # if bank_balance <= 0:
-    #     if stocks_held <= 0:
-    #         return [hold]
-    #     return [sell, hold]
-    # elif stocks_held <= 0:
-    #     return [buy, hold]
-    # else:
-    #     return [buy, sell, hold]
+    # If you have no $$ and no stocks, you can't do anything
+    if bank_balance <= 0:
+        if stocks_held <= 0:
+            return [hold]
+        return [sell, hold]
+    elif stocks_held <= 0:
+        return [buy, hold]
+    else:
+        return [buy, sell, hold]
 
 # Determine the reward we get in a given state given the action
 # Reward is the difference between current portfolio and next portfolio
@@ -104,7 +98,7 @@ def pointSlope(cur_time, span):
     #     return 0
 
     # Multiply by 100, set to int, equiv of truncating at 2 decimals
-    slope = int((data_set[cur_time] - data_set[cur_time - span]) * 100)
+    slope = float((data_set[cur_time] - data_set[cur_time - span])*1.0/data_set[cur_time - span])
     # Cap -10 to 10 to limit state space
     if slope > 10:
         return 10
@@ -117,8 +111,8 @@ def avgSlope(cur_time, span):
     avg = 0.0
     for i in range(span):
         if (cur_time - i) > 0:
-            avg += data_set[cur_time - i] - data_set[cur_time - i - 1]
-    return (avg / span)
+            avg += (data_set[cur_time - i] - data_set[cur_time - i - 1])*1.0/data_set[cur_time - i - 1]
+    return (avg*1.0 / span)
 
 
 # Returns difference between current value and mean of last "span" points 
@@ -127,15 +121,14 @@ def meanDiff(cur_time, span):
     for i in range(span):
         if (cur_time - i) > 0:
             avg += data_set[cur_time - i]
-    avg = avg / span
+    avg = avg*1.0 / span
     return data_set[cur_time] - avg
 
 def getFeatures(cur_time):
     global features
-    features[0] = 0
-    features[1] = pointSlope(cur_time, LOCAL_SPAN)
-    features[2] = avgSlope(cur_time, LOCAL_SPAN)
-    features[3] = meanDiff (cur_time, RUNNING_SPAN)
+    features[0] = pointSlope(cur_time, LOCAL_SPAN)
+    features[1] = avgSlope(cur_time, LOCAL_SPAN)
+    features[2] = meanDiff (cur_time, RUNNING_SPAN)
 
     return features
 
@@ -146,8 +139,7 @@ def getQValue(cur_time, action):
     for i in range(len(features)):
         qval += weights[i] * features[i]
     print 'weights', weights
-    # print 'feat', features
-    # print 'qval', qval
+
     return qval
 
 def maxQValue(cur_time):
@@ -165,7 +157,6 @@ def getBestAction(cur_time):
     bestAction = 'hold'
     for action in ['buy', 'hold', 'sell']:
         score = getQValue(cur_time, action)
-        # print score
         if score > bestScore:
             bestScore = score
             bestAction = action
@@ -178,7 +169,6 @@ def getBestAction(cur_time):
 def update(cur_time, action, reward):
     features = getFeatures(cur_time)
     print 'reward', reward
-    print 'discount', DISCOUNT
     print 'maxq', maxQValue(cur_time +1)
     print 'qval', getQValue(cur_time, action)
     difference = reward + DISCOUNT * maxQValue(cur_time +1) - getQValue(cur_time, action)
@@ -236,37 +226,31 @@ def tradeStocks(cur_time, action):
 ########################################
 # MAIN CODE 
 ########################################
-
+INFILE = 'BA_15Y_01_13.csv'
 data_set = loadData(INFILE)
 weights = [0]*NUM_FEATS
-print weights 
-if (TRAINING):
-    print 'Im training'
-    # How many times should we run this?
-    for i in range(ITERATIONS):
-        # Iterates over array, time (cur_time) is arbitrary, two points per day
-        for cur_time in range(LOOKAHEAD, len(data_set) - 2*LOOKAHEAD):
-            action = pickAction(cur_time)
-            reward = getReward(cur_time, action)
-            update(cur_time, action, reward)
 
-# TODO: Make this selectable from cmdline and save/load trained dataset elsewhere
-    TRAINING = 0
-    TESTING = 1
-    # print values
+print 'Im training'
+# How many times should we run this?
+for i in range(ITERATIONS):
+    # Iterates over array, time (cur_time) is arbitrary, two points per day
+    for cur_time in range(LOOKAHEAD, len(data_set) - 2*LOOKAHEAD):
+        action = pickAction(cur_time)
+        reward = getReward(cur_time, action)
+        update(cur_time, action, reward)
 
+TESTFILE = 'BA_2Y_14_15.csv'
 data_set = loadData(TESTFILE)
 
 
-if (TESTING):
-    print 'im testing'
-    stocks_held = START_STOCK
-    bank_balance = START_BANK
-    portfolio = []
-    for cur_time in range(len(data_set)):
-        action = getBestAction(cur_time)
-        tradeStocks(cur_time, action)
-        print(action, bank_balance, stocks_held, portfolio[-1])
+print 'im testing'
+stocks_held = START_STOCK
+bank_balance = START_BANK
+portfolio = []
+for cur_time in range(len(data_set)):
+    action = getBestAction(cur_time)
+    tradeStocks(cur_time, action)
+    print(action, stocks_held, bank_balance, portfolio[-1])
 
 
 print weights

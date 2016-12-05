@@ -13,16 +13,12 @@ import matplotlib.collections  as mc
 import random as rd
 import math, collections, sys
 
-# Are you training or testing???
-TRAINING = 0
-TESTING = 1
-
 # Pick the file to read from
 # INFILE = 'BA_6M_15.csv'
 # INFILE = 'BA_1Y_15.csv'
 # INFILE = 'BA_2Y_14_15.csv'
-INFILE = 'BA_5Y_11_15.csv'
-# INFILE = 'BA_15Y_01_13.csv'
+# INFILE = 'BA_5Y_11_15.csv'
+INFILE = 'BA_15Y_01_13.csv'
 
 
 # Initialize the starting number of stocks and the starting bank balance
@@ -69,15 +65,15 @@ def getLegalActions(cur_time):
     # For the simplest case, lets just say all actions are always valid
     return ['buy', 'sell', 'hold']
 
-    # # If you have no $$ and no stocks, you can't do anything
-    # if bank_balance <= 0:
-    #     if stocks_held <= 0:
-    #         return [hold]
-    #     return [sell, hold]
-    # elif stocks_held <= 0:
-    #     return [buy, hold]
-    # else:
-    #     return [buy, sell, hold]
+    # If you have no $$ and no stocks, you can't do anything
+    if bank_balance <= 0:
+        if stocks_held <= 0:
+            return [hold]
+        return [sell, hold]
+    elif stocks_held <= 0:
+        return [buy, hold]
+    else:
+        return [buy, sell, hold]
 
 # Determine the reward we get in a given state given the action
 # Reward is the difference between current portfolio and next portfolio
@@ -174,7 +170,7 @@ def tradeStocks(cur_time, action):
 # Training variables
 
 EPSILON = 0.05
-alpha = [0,0.1,0.2,0.5,1]
+alpha = [0,0.2]
 DISCOUNT = 0.8
 ITERATIONS = 100
 LOOKAHEAD = 20
@@ -203,7 +199,7 @@ for i in alpha:
             action = pickAction(state, cur_time)
             reward = getReward(cur_time, action)
             update(cur_time, state, action, nextState, reward)
-<<<<<<< HEAD
+    print values
 
 
         # print values
@@ -213,24 +209,22 @@ for i in alpha:
     data_set = loadData(INFILE)
 
 
-=======
-# TODO: Make this selectable from cmdline and save/load trained dataset elsewhere
-    print 'in', values
-    f = open('valueFile', 'w')
-    f.write(str(values))
+# # # TODO: Make this selectable from cmdline and save/load trained dataset elsewhere
+# #     print 'in', values
+# #     f = open('valueFile', 'w')
+# #     f.write(str(values))
 
-# INFILE = 'BA_6M_15.csv'
-# INFILE = 'BA_1Y_15.csv'
-# INFILE = 'BA_2Y_14_15.csv'
+# # # INFILE = 'BA_6M_15.csv'
+# # # INFILE = 'BA_1Y_15.csv'
+# # # INFILE = 'BA_2Y_14_15.csv'
 
 
-elif (TESTING):
-    s = open('valueFile', 'r').read()
-    values = eval(s)
-    print 'out', values
-    data_set = loadData(INFILE)
+# # elif (TESTING):
+# #     s = open('valueFile', 'r').read()
+# #     values = eval(s)
+# #     print 'out', values
+#     data_set = loadData(INFILE)
 
->>>>>>> 25466e7ba17c6aac15118d9f1c40699021972de0
     print 'im testing'
     stocks_held = START_STOCK
     bank_balance = START_BANK

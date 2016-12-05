@@ -2,7 +2,7 @@
 # CS182 Final Project, Fall 2016
 # Anita Xu & Janey Farina
 #
-# Q-Learning Agent for 182 final project
+# Approximate Q-Learning Agent for 182 final project
 # Code modeled after CS182 Pset 3
 #
 ########################################
@@ -22,24 +22,25 @@ TESTING = 0
 # INFILE = 'BA_1Y_15.csv'
 # INFILE = 'BA_2Y_14_15.csv'
 # INFILE = 'BA_5Y_11_15.csv'
-INFILE = 'BA_15Y_01_13.csv'
+INFILE = 'BA_15Y_01_15.csv'
+
+TESTFILE = 'BA_1Y_15.csv'
 
 
 # Initialize the starting number of stocks and the starting bank balance
-START_BANK = 10000
-START_STOCK = 0
+START_BANK = 100
+START_STOCK = 100
 
 # Training variables
-
-EPSILON = 0.01
-ALPHA = 1
-DISCOUNT = 1
-ITERATIONS = 100
-LOOKAHEAD = 20
+EPSILON = .3
+ALPHA = .5
+DISCOUNT = .7
+ITERATIONS = 10
+LOOKAHEAD = 50
 
 # Helpers and things
 stocks_held = START_STOCK
-bank_balance = START_BANK
+bank_ballance = START_BANK
 portfolio = []
 qvalues = [] 
 
@@ -58,27 +59,13 @@ def loadData(file):
 # Q LEARNING CODE 
 ########################################
 
-# Find the slope between this point and the last
-def getShortTermTrend(cur_time):
-    # # if this is the first data point, assume a slope of zero
-    # if cur_time == 0:
-    #     return 0
-    # Multiply by 100, set to int, equiv of truncating at 1 decimals
-    slope = int((data_set[cur_time] - data_set[cur_time - LOOKAHEAD])*5)
-    # Cap -10 to 10 to limit state space
-    if slope > 50:
-        return 50
-    if slope < -50:
-        return -50
-    return slope
-
 # Determine which actions are available given stocks held and bank balance
 def getLegalActions(cur_time):
     # For the simplest case, lets just say all actions are always valid
     return ['buy', 'sell', 'hold']
 
     # # If you have no $$ and no stocks, you can't do anything
-    # if bank_balance <= 0:
+    # if bank_ballance <= 0:
     #     if stocks_held <= 0:
     #         return [hold]
     #     return [sell, hold]
@@ -115,7 +102,6 @@ def getBestAction(state, cur_time):
         if score > bestScore:
             bestScore = score
             bestAction = action
-
     return bestAction
 
 
@@ -129,10 +115,63 @@ def getMaxStateValue(state, cur_time):
     return bestScore
 
 
-# Update our qvalue array
-def update(cur_time, state, action, nextState, reward):
-    values[state,action] = values[state,action] + ALPHA * (reward +
-        DISCOUNT * getMaxStateValue(nextState, cur_time +1) - values[state,action])
+
+# Find the slope between this point and the last
+def pointSlope(cur_time, span):
+    # # if this is the first data point, assume a slope of zero
+    # if cur_time == 0:
+    #     return 0
+
+    # Multiply by 100, set to int, equiv of truncating at 2 decimals
+    slope = int((data_set[cur_time] - data_set[cur_time - LOOKAHEAD]) * 100)
+    # Cap -10 to 10 to limit state space
+    if slope > 10:
+        return 10
+    if slope < -10:
+        return -10
+    return slope
+
+# Returns average
+def avgSlope(cur_time, span):
+
+# Returns difference between current value and mean of last "span" points 
+def meanDiff(cur_time, span):
+    pass
+
+
+# Extract the features at the current time point
+def getFeatures(cur_time):
+    pass
+
+    features{pointSlopeLocal} = 
+    features{pointSlopeLong} = 
+    features{avgSlopeLocal} = 
+    features{avgSlopeLong} = 
+    features{meanDiff} = 
+
+
+
+
+
+# Determine the q value from (weights (dot) features)
+def getQValue():
+    pass
+
+    # qvalues = 0.0
+    # features = getFeatures(cur_time, )
+    # weights = 
+    # for feature in features:
+    #     qvalues += features[feature] * weights[feature]
+
+    # return qvalues
+
+
+# Update our the weights given a transition
+def update(cur_time, action, reward):
+    pass
+
+
+
 
 
 ########################################
@@ -141,28 +180,26 @@ def update(cur_time, state, action, nextState, reward):
 
 # buys num_to_trade number of stocks and updates bank balance accordingly, debt is allowed
 def buy(cur_time, num_to_trade = 10):
-    global stocks_held, bank_balance
-    if num_to_trade*data_set[cur_time] > bank_balance:
-        num_to_trade = int(bank_balance)/int(data_set[cur_time])
+    global stocks_held, bank_ballance
     stocks_held += num_to_trade
-    bank_balance -= num_to_trade*data_set[cur_time]
-    portfolio.append(stocks_held*data_set[cur_time] + bank_balance)
+    bank_ballance -= num_to_trade*data_set[cur_time]
+    portfolio.append(stocks_held*data_set[cur_time] + bank_ballance)
 
 
 # sells num_to_trade number of stocks and updates bank balance accordingly, 
 def sell(cur_time, num_to_trade = 10):
-    global stocks_held, bank_balance
+    global stocks_held, bank_ballance
     if ((stocks_held - num_to_trade) <= 0): 
-        bank_balance += stocks_held*data_set[cur_time]
+        bank_ballance += stocks_held*data_set[cur_time]
         stocks_held = 0
     else:
         stocks_held -= num_to_trade
-        bank_balance += num_to_trade*data_set[cur_time]
-    portfolio.append(stocks_held*data_set[cur_time] + bank_balance)
+        bank_ballance += num_to_trade*data_set[cur_time]
+    portfolio.append(stocks_held*data_set[cur_time] + bank_ballance)
 
 # appends the current value to balance
 def hold(cur_time):
-    portfolio.append(stocks_held*data_set[cur_time] + bank_balance)
+    portfolio.append(stocks_held*data_set[cur_time] + bank_ballance)
 
 
 def tradeStocks(cur_time, action):
@@ -188,38 +225,33 @@ if (TRAINING):
     for i in range(ITERATIONS):
         # Iterates over array, time (cur_time) is arbitrary, two points per day
         for cur_time in range(LOOKAHEAD, len(data_set) - 2*LOOKAHEAD):
-            state = getShortTermTrend(cur_time)
-            nextState = getShortTermTrend(cur_time+1)
+            # state = getShortTermTrend(cur_time)
+            # nextState = getShortTermTrend(cur_time+1)
             action = pickAction(state, cur_time)
             reward = getReward(cur_time, action)
-            update(cur_time, state, action, nextState, reward)
+            update(cur_time, action, nextState, reward)
+
 # TODO: Make this selectable from cmdline and save/load trained dataset elsewhere
     TRAINING = 0
     TESTING = 1
-<<<<<<< HEAD
-    # print values
-# INFILE = 'BA_6M_15.csv'
-=======
     print values
-INFILE = 'BA_6M_15.csv'
->>>>>>> 9a84106dd17eb682aa47c73310219ca0dbd36890
-# INFILE = 'BA_1Y_15.csv'
-# INFILE = 'BA_2Y_14_15.csv'
-data_set = loadData(INFILE)
+
+
+data_set = loadData(TESTFILE)
 
 
 if (TESTING):
     print 'im testing'
     stocks_held = START_STOCK
-    bank_balance = START_BANK
+    bank_ballance = START_BANK
     portfolio = []
     for cur_time in range(len(data_set)):
         state = getShortTermTrend(cur_time)
         action = getBestAction(state, cur_time)
         tradeStocks(cur_time, action)
-        print (state,action,stocks_held,bank_balance,portfolio[-1])
+
 else:
-    print "What are you doing dude?"
+    print "Please Specify Training -train or Testing -test"
 
 
 ########################################
@@ -232,7 +264,6 @@ ax1 = fig.add_subplot(211)
 ax2 = fig.add_subplot(212)
 
 ax1.plot(range(len(data_set)), data_set, color='r', label='Stock Price')
-
 ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
 
 plt.show()

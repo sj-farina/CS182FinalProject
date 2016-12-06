@@ -21,9 +21,9 @@ import math, collections, sys
 INFILE = 'BA_15Y_01_13.csv'
 
 # Feature 
-RUNNING_SPAN = 50
-LOCAL_SPAN = 10
-NUM_FEATS = 3
+RUNNING_SPAN = 100
+LOCAL_SPAN = 50
+NUM_FEATS = 2
 
 
 # Initialize the starting number of stocks and the starting bank balance
@@ -49,7 +49,6 @@ features = [0]*NUM_FEATS
 def loadData(file):
     file = np.genfromtxt(file, delimiter=',', skip_header=1,
             skip_footer=1, names=['date', 'open', 'high', 'low', 'close', 'adj'])
-    open_value = file['open']
     close_value = file['close']
     # Zips the opening and closing values into one array
     return close_value
@@ -103,11 +102,11 @@ def yesterdaySlope(cur_time, action):
     # Cap -10 to 10 to limit state space
     feat1= 0
     if action == 'buy':
-        feat1 = slope * (stocks_held + default)
+        feat1 = slope * (stocks_held + default)/1000.0
     elif action == 'hold':
-        feat1 = slope * (stocks_held)
+        feat1 = slope * (stocks_held)/1000.0
     else:
-        feat1 = slope * (stocks_held - default)
+        feat1 = slope * (stocks_held - default)/1000.0
     # if feat1 > 10:
     #     return 10
     # if feat1 < -10:
@@ -115,13 +114,20 @@ def yesterdaySlope(cur_time, action):
     return feat1
 
 # Returns average
-def avgSlope(cur_time, span,action):
+def avgSlope(cur_time, span, action):
     avg = 0.0
     for i in range(span):
         if (cur_time - i) > 0:
             avg += (data_set[cur_time - i] - data_set[cur_time - i - 1])*1.0/data_set[cur_time - i - 1]
-    return (avg*1.0 / span)
-
+    slope = (avg*1.0 / span)
+    feat2 = 0
+    if action == 'buy':
+        feat2 = slope * (stocks_held + default)/1000.0
+    elif action == 'hold':
+        feat2 = slope * (stocks_held)/1000.0
+    else:
+        feat2 = slope * (stocks_held - default)/1000.0
+    return feat2
 
 # Returns difference between current value and mean of last "span" points 
 def meanDiff(cur_time, span,action):
@@ -130,13 +136,21 @@ def meanDiff(cur_time, span,action):
         if (cur_time - i) > 0:
             avg += data_set[cur_time - i]
     avg = avg*1.0 / span
-    return data_set[cur_time] - avg
+    slope= data_set[cur_time] - avg
+    feat3 = 0
+    if action == 'buy':
+        feat3 = slope * (stocks_held + default)/1000.0
+    elif action == 'hold':
+        feat3 = slope * (stocks_held)/1000.0
+    else:
+        feat3 = slope * (stocks_held - default)/1000.0
+    return feat3
 
 def getFeatures(cur_time,action):
     global features
     features[0] = yesterdaySlope(cur_time, action)
     features[1] = avgSlope(cur_time, LOCAL_SPAN,action)
-    features[2] = meanDiff (cur_time, RUNNING_SPAN,action)
+    # features[2] = meanDiff (cur_time, RUNNING_SPAN,action)
 
     return features
 
@@ -173,10 +187,10 @@ def getBestAction(cur_time):
 
 # Update our the weights given a transition
 def update(cur_time, action, reward):
-    features = getFeatures(cur_time)
-    print 'reward', reward
-    print 'qval', getQValue(cur_time, action)
-    print 'weights', weights
+    features = getFeatures(cur_time,action)
+    # print 'reward', reward
+    # print 'qval', getQValue(cur_time, action)
+    # print 'weights', weights
     difference = reward + DISCOUNT * maxQValue(cur_time +1) - getQValue(cur_time, action)
     for i in range(len(weights)):
         weights[i] += ALPHA * difference * features[i]
@@ -257,13 +271,21 @@ print 'im testing'
 stocks_held = START_STOCK
 bank_balance = START_BANK
 portfolio = []
+store_actions =[]
 for cur_time in range(LIMIT_training,len(data_set)):
     action = getBestAction(cur_time)
     tradeStocks(cur_time, action)
-    # print(action, stocks_held, bank_balance, portfolio[-1])
+    print(action, stocks_held, bank_balance, portfolio[-1])
+    temp= 0
+    if action == 'buy':
+        temp = 1
+    elif action == 'sell':
+        temp = -1
+    store_actions.append(temp)
 
-
-
+print weights
+np.savetxt("approx_actions.csv",store_actions, delimiter=",")
+np.savetxt("approx_port.csv",portfolio, delimiter=",")
 
 
 ########################################
@@ -278,7 +300,8 @@ stock = 'BA_2Y_14_15.csv'
 stockdata = loadData(stock)
 ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
 ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
-
+ax1.axis([0,600,0,160])
+ax2.axis([0,600,0,np.max(portfolio)])
 plt.show()
 
 

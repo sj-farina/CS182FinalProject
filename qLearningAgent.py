@@ -37,7 +37,6 @@ qvalues = []
 def loadData(file):
     file = np.genfromtxt(file, delimiter=',', skip_header=1,
             skip_footer=1, names=['date', 'open', 'high', 'low', 'close', 'adj'])
-    open_value = file['open']
     close_value = file['close']
     # Zips the opening and closing values into one array
     return close_value
@@ -171,15 +170,15 @@ def tradeStocks(cur_time, action):
 # Training variables
 
 EPSILON = 0.05
-alpha = [0.05,0.2,0.5,1]
+alpha = [0,0.05,0.2,0.5,0.1]
 DISCOUNT = 0.8
 ITERATIONS = 100
 LOOKAHEAD = 20
 
 # Optional plot for reference
 fig = plt.figure()
-ax1 = fig.add_subplot(311)
-ax2 = fig.add_subplot(312)
+# ax1 = fig.add_subplot(311)
+ax2 = fig.add_subplot(111)
 
 LIMIT_training = 3269 # train on data 2001-2013, test on 2014-2015
 INFILE = 'BA_15Y_01_15.csv'
@@ -187,9 +186,9 @@ data_set = loadData(INFILE)
 
 for i in alpha:
     ALPHA = i
-    
+        
     values = collections.Counter()
-    
+
     print 'Im training'
     # How many times should we run this?
     for i in range(ITERATIONS):
@@ -202,47 +201,33 @@ for i in alpha:
             update(cur_time, state, action, nextState, reward)
     # print values
 
-
-        # print values
-    # INFILE = 'BA_6M_15.csv'
-    # INFILE = 'BA_1Y_15.csv'
-    # INFILE = 'BA_2Y_14_15.csv'
-    # data_set = loadData(INFILE)
-
-
-# # # TODO: Make this selectable from cmdline and save/load trained dataset elsewhere
-# #     print 'in', values
-# #     f = open('valueFile', 'w')
-# #     f.write(str(values))
-
-# # # INFILE = 'BA_6M_15.csv'
-# # # INFILE = 'BA_1Y_15.csv'
-# # # INFILE = 'BA_2Y_14_15.csv'
-
-
-# # elif (TESTING):
-# #     s = open('valueFile', 'r').read()
-# #     values = eval(s)
-# #     print 'out', values
-#     data_set = loadData(INFILE)
-
     print 'im testing'
     stocks_held = START_STOCK
     bank_balance = START_BANK
     portfolio = []
+    store_actions =[]
     for cur_time in range(LIMIT_training,len(data_set)):
         state = getShortTermTrend(cur_time)
         action = getBestAction(state, cur_time)
         tradeStocks(cur_time, action)
         print (state,action,stocks_held,bank_balance,portfolio[-1])
+        temp= 0
+        if action == 'buy':
+            temp = 1
+        elif action == 'sell':
+            temp = -1
+        store_actions.append(temp)
     ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
 
-stock = 'BA_2Y_14_15.csv'
-stockdata = loadData(stock)
-ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
-ax2.legend(alpha, loc='best')
-# plt.show()
 
+# stock = 'BA_2Y_14_15.csv'
+# stockdata = loadData(stock)
+# ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
+ax2.legend(alpha, loc='best')
+plt.show()
+
+# np.savetxt("qlearner_actions.csv",store_actions, delimiter=",")
+# np.savetxt("qlearner_port.csv",portfolio, delimiter=",")
 ########################################
 # DISPLAY CODE 
 ########################################
@@ -307,19 +292,22 @@ def randomWalk(stock):
     stocks_held = START_STOCK
     bank_balance = START_BANK
     portfolio = []
-
+    store_array=[]
     for i in range(len(stock['open'])):
-        rand_num = rd.randint(0,2)
+        rand_num = rd.randint(-1,1)
         # rand_to_trade = 1
         rand_to_trade = rd.randint(MIN_SELL, MAX_SELL)
         #wtf? why does python not have switch statements?
-        if rand_num == 0:
+        if rand_num == -1:
             sell(i, rand_to_trade)
-        elif rand_num == 1:
+        elif rand_num == 0:
             hold(i)
-        elif rand_num == 2:
+        elif rand_num == 1:
             buy(i, rand_to_trade)
         # print(rand_num,stocks_held,bank_balance,portfolio[-1])
+        store_array.append(rand_num)
+    # np.savetxt("random_actions.csv",store_array, delimiter=",")
+    # np.savetxt("random_port.csv",portfolio, delimiter=",")
     return portfolio
 
 ###########
@@ -341,9 +329,9 @@ ax3.set_title("Portfolio Value")
 ax3.set_xlabel('time')
 ax3.set_ylabel('value')
 
-for each in range(TRIALS):
-    rand_port = randomWalk(stock)
-    ax3.plot(range(len(rand_port)), rand_port, label='Portfolio Value')
+# for each in range(TRIALS):
+rand_port = randomWalk(stock)
+# ax3.plot(range(len(rand_port)), rand_port, label='Portfolio Value')
 
 # leg = ax3.legend()
 # leg = ax2.legend()

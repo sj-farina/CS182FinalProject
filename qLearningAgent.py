@@ -170,7 +170,7 @@ def tradeStocks(cur_time, action):
 # Training variables
 
 EPSILON = 0.05
-alpha = [0,0.05,0.2,0.5,0.1]
+ALPHA = 1
 DISCOUNT = 0.8
 ITERATIONS = 100
 LOOKAHEAD = 20
@@ -184,46 +184,47 @@ LIMIT_training = 3269 # train on data 2001-2013, test on 2014-2015
 INFILE = 'BA_15Y_01_15.csv'
 data_set = loadData(INFILE)
 
-for i in alpha:
-    ALPHA = i
+# for i in alpha:
+#     ALPHA = i
         
-    values = collections.Counter()
+values = collections.Counter()
 
-    print 'Im training'
-    # How many times should we run this?
-    for i in range(ITERATIONS):
-        # Iterates over array, time (cur_time) is arbitrary, two points per day
-        for cur_time in range(LOOKAHEAD, LIMIT_training - LOOKAHEAD):
-            state = getShortTermTrend(cur_time)
-            nextState = getShortTermTrend(cur_time+1)
-            action = pickAction(state, cur_time)
-            reward = getReward(cur_time, action)
-            update(cur_time, state, action, nextState, reward)
-    # print values
-
-    print 'im testing'
-    stocks_held = START_STOCK
-    bank_balance = START_BANK
-    portfolio = []
-    store_actions =[]
-    for cur_time in range(LIMIT_training,len(data_set)):
+print 'Im training'
+# How many times should we run this?
+for i in range(ITERATIONS):
+    # Iterates over array, time (cur_time) is arbitrary, two points per day
+    for cur_time in range(LOOKAHEAD, LIMIT_training - LOOKAHEAD):
         state = getShortTermTrend(cur_time)
-        action = getBestAction(state, cur_time)
-        tradeStocks(cur_time, action)
-        print (state,action,stocks_held,bank_balance,portfolio[-1])
-        temp= 0
-        if action == 'buy':
-            temp = 1
-        elif action == 'sell':
-            temp = -1
-        store_actions.append(temp)
-    ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
+        nextState = getShortTermTrend(cur_time+1)
+        action = pickAction(state, cur_time)
+        reward = getReward(cur_time, action)
+        update(cur_time, state, action, nextState, reward)
+# print values
+
+print 'im testing'
+stocks_held = START_STOCK
+bank_balance = START_BANK
+portfolio = []
+store_actions =[]
+for cur_time in range(LIMIT_training,len(data_set)):
+    state = getShortTermTrend(cur_time)
+    action = getBestAction(state, cur_time)
+    tradeStocks(cur_time, action)
+    print (state,action,stocks_held,bank_balance,portfolio[-1])
+    temp= 0
+    if action == 'buy':
+        temp = 1
+    elif action == 'sell':
+        temp = -1
+    store_actions.append(temp)
+ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
+np.savetxt("qlearner_alphas.csv",portfolio, delimiter=",")
 
 
 # stock = 'BA_2Y_14_15.csv'
 # stockdata = loadData(stock)
 # ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
-ax2.legend(alpha, loc='best')
+# ax2.legend(alpha, loc='best')
 plt.show()
 
 # np.savetxt("qlearner_actions.csv",store_actions, delimiter=",")

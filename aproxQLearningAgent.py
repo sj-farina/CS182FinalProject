@@ -29,6 +29,7 @@ NUM_FEATS = 3
 # Initialize the starting number of stocks and the starting bank balance
 START_BANK = 10000
 START_STOCK = 0
+default = 10 # default buy or sell 10 stocks
 
 # Training variables
 EPSILON = .05
@@ -51,7 +52,7 @@ def loadData(file):
     open_value = file['open']
     close_value = file['close']
     # Zips the opening and closing values into one array
-    return np.insert(close_value, np.arange(len(open_value)), open_value)
+    return close_value
 
 
 ########################################
@@ -92,22 +93,29 @@ def pickAction(cur_time):
 
 
 # Find the slope between this point and the last
-def pointSlope(cur_time, span):
+def yesterdaySlope(cur_time, action):
     # # if this is the first data point, assume a slope of zero
     # if cur_time == 0:
     #     return 0
 
     # Multiply by 100, set to int, equiv of truncating at 2 decimals
-    slope = float((data_set[cur_time] - data_set[cur_time - span])*1.0/data_set[cur_time - span])
+    slope = float((data_set[cur_time] - data_set[cur_time - 1])*1.0/data_set[cur_time - 1])
     # Cap -10 to 10 to limit state space
-    if slope > 10:
-        return 10
-    if slope < -10:
-        return -10
-    return slope
+    feat1= 0
+    if action == 'buy':
+        feat1 = slope * (stocks_held + default)
+    elif action == 'hold':
+        feat1 = slope * (stocks_held)
+    else:
+        feat1 = slope * (stocks_held - default)
+    # if feat1 > 10:
+    #     return 10
+    # if feat1 < -10:
+    #     return -10
+    return feat1
 
 # Returns average
-def avgSlope(cur_time, span):
+def avgSlope(cur_time, span,action):
     avg = 0.0
     for i in range(span):
         if (cur_time - i) > 0:
@@ -116,7 +124,7 @@ def avgSlope(cur_time, span):
 
 
 # Returns difference between current value and mean of last "span" points 
-def meanDiff(cur_time, span):
+def meanDiff(cur_time, span,action):
     avg = 0.0
     for i in range(span):
         if (cur_time - i) > 0:
@@ -124,22 +132,20 @@ def meanDiff(cur_time, span):
     avg = avg*1.0 / span
     return data_set[cur_time] - avg
 
-def getFeatures(cur_time):
+def getFeatures(cur_time,action):
     global features
-    features[0] = pointSlope(cur_time, LOCAL_SPAN)
-    features[1] = avgSlope(cur_time, LOCAL_SPAN)
-    features[2] = meanDiff (cur_time, RUNNING_SPAN)
+    features[0] = yesterdaySlope(cur_time, action)
+    features[1] = avgSlope(cur_time, LOCAL_SPAN,action)
+    features[2] = meanDiff (cur_time, RUNNING_SPAN,action)
 
     return features
 
 # Determine the q value from (weights (dot) features)
 def getQValue(cur_time, action):
-    features = getFeatures(cur_time)
+    features = getFeatures(cur_time,action)
     qval = 0.0
     for i in range(len(features)):
         qval += weights[i] * features[i]
-    print 'weights', weights
-
     return qval
 
 def maxQValue(cur_time):
@@ -169,8 +175,8 @@ def getBestAction(cur_time):
 def update(cur_time, action, reward):
     features = getFeatures(cur_time)
     print 'reward', reward
-    print 'maxq', maxQValue(cur_time +1)
     print 'qval', getQValue(cur_time, action)
+    print 'weights', weights
     difference = reward + DISCOUNT * maxQValue(cur_time +1) - getQValue(cur_time, action)
     for i in range(len(weights)):
         weights[i] += ALPHA * difference * features[i]
@@ -178,6 +184,7 @@ def update(cur_time, action, reward):
             weights[i] = 20
         elif weights[i] < -20:
             weights[i]= -20
+
 
 
 
@@ -226,34 +233,36 @@ def tradeStocks(cur_time, action):
 ########################################
 # MAIN CODE 
 ########################################
-INFILE = 'BA_15Y_01_13.csv'
+INFILE = 'BA_15Y_01_15.csv'
 data_set = loadData(INFILE)
 weights = [0]*NUM_FEATS
+LIMIT_training = 3269 # train on data 2001-2013, test on 2014-2015
 
 print 'Im training'
 # How many times should we run this?
 for i in range(ITERATIONS):
     # Iterates over array, time (cur_time) is arbitrary, two points per day
-    for cur_time in range(LOOKAHEAD, len(data_set) - 2*LOOKAHEAD):
+    for cur_time in range(LOOKAHEAD, LIMIT_training-LOOKAHEAD):
+        state= [data_set[cur_time],stocks_held]
         action = pickAction(cur_time)
         reward = getReward(cur_time, action)
         update(cur_time, action, reward)
 
-TESTFILE = 'BA_2Y_14_15.csv'
-data_set = loadData(TESTFILE)
+# TESTFILE = 'BA_2Y_14_15.csv'
+# data_set = loadData(TESTFILE)
 
 
 print 'im testing'
+# print weights
 stocks_held = START_STOCK
 bank_balance = START_BANK
 portfolio = []
-for cur_time in range(len(data_set)):
+for cur_time in range(LIMIT_training,len(data_set)):
     action = getBestAction(cur_time)
     tradeStocks(cur_time, action)
-    print(action, stocks_held, bank_balance, portfolio[-1])
+    # print(action, stocks_held, bank_balance, portfolio[-1])
 
 
-print weights
 
 
 
@@ -265,8 +274,9 @@ print weights
 fig = plt.figure()
 ax1 = fig.add_subplot(211)
 ax2 = fig.add_subplot(212)
-
-ax1.plot(range(len(data_set)), data_set, color='r', label='Stock Price')
+stock = 'BA_2Y_14_15.csv'
+stockdata = loadData(stock)
+ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
 ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
 
 plt.show()

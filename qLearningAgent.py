@@ -33,13 +33,14 @@ qvalues = []
 
 
 # Load the training file
+
 def loadData(file):
     file = np.genfromtxt(file, delimiter=',', skip_header=1,
             skip_footer=1, names=['date', 'open', 'high', 'low', 'close', 'adj'])
     open_value = file['open']
     close_value = file['close']
     # Zips the opening and closing values into one array
-    return np.insert(close_value, np.arange(len(open_value)), open_value)
+    return close_value
 
 
 ########################################
@@ -170,7 +171,7 @@ def tradeStocks(cur_time, action):
 # Training variables
 
 EPSILON = 0.05
-alpha = [0,0.2]
+alpha = [0.05,0.2,0.5,1]
 DISCOUNT = 0.8
 ITERATIONS = 100
 LOOKAHEAD = 20
@@ -180,33 +181,33 @@ fig = plt.figure()
 ax1 = fig.add_subplot(311)
 ax2 = fig.add_subplot(312)
 
-
-
+LIMIT_training = 3269 # train on data 2001-2013, test on 2014-2015
+INFILE = 'BA_15Y_01_15.csv'
+data_set = loadData(INFILE)
 
 for i in alpha:
     ALPHA = i
     
     values = collections.Counter()
-    INFILE = 'BA_15Y_01_13.csv'
-    data_set = loadData(INFILE)
+    
     print 'Im training'
     # How many times should we run this?
     for i in range(ITERATIONS):
         # Iterates over array, time (cur_time) is arbitrary, two points per day
-        for cur_time in range(LOOKAHEAD, len(data_set) - 2*LOOKAHEAD):
+        for cur_time in range(LOOKAHEAD, LIMIT_training - LOOKAHEAD):
             state = getShortTermTrend(cur_time)
             nextState = getShortTermTrend(cur_time+1)
             action = pickAction(state, cur_time)
             reward = getReward(cur_time, action)
             update(cur_time, state, action, nextState, reward)
-    print values
+    # print values
 
 
         # print values
     # INFILE = 'BA_6M_15.csv'
     # INFILE = 'BA_1Y_15.csv'
-    INFILE = 'BA_2Y_14_15.csv'
-    data_set = loadData(INFILE)
+    # INFILE = 'BA_2Y_14_15.csv'
+    # data_set = loadData(INFILE)
 
 
 # # # TODO: Make this selectable from cmdline and save/load trained dataset elsewhere
@@ -229,14 +230,16 @@ for i in alpha:
     stocks_held = START_STOCK
     bank_balance = START_BANK
     portfolio = []
-    for cur_time in range(len(data_set)):
+    for cur_time in range(LIMIT_training,len(data_set)):
         state = getShortTermTrend(cur_time)
         action = getBestAction(state, cur_time)
         tradeStocks(cur_time, action)
-        #print (state,action,stocks_held,bank_balance,portfolio[-1])
+        print (state,action,stocks_held,bank_balance,portfolio[-1])
     ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
 
-ax1.plot(range(len(data_set)), data_set, color='r', label='Stock Price')
+stock = 'BA_2Y_14_15.csv'
+stockdata = loadData(stock)
+ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
 ax2.legend(alpha, loc='best')
 # plt.show()
 
@@ -316,7 +319,7 @@ def randomWalk(stock):
             hold(i)
         elif rand_num == 2:
             buy(i, rand_to_trade)
-        print(rand_num,stocks_held,bank_balance,portfolio[-1])
+        # print(rand_num,stocks_held,bank_balance,portfolio[-1])
     return portfolio
 
 ###########

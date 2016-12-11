@@ -18,11 +18,11 @@ import math, collections, sys
 # INFILE = 'BA_1Y_15.csv'
 # INFILE = 'BA_2Y_14_15.csv'
 # INFILE = 'BA_5Y_11_15.csv'
-INFILE = 'BA_15Y_01_13.csv'
+INFILE = 'KSS_16Y_00_16.csv'
 
 # Feature 
-RUNNING_SPAN = 100
-LOCAL_SPAN = 50
+# RUNNING_SPAN = 20
+LOCAL_SPAN = 5
 NUM_FEATS = 2
 
 
@@ -33,10 +33,10 @@ default = 10 # default buy or sell 10 stocks
 
 # Training variables
 EPSILON = .05
-ALPHA = .2
+ALPHA = .5
 DISCOUNT = .8
 ITERATIONS = 10
-LOOKAHEAD = 20
+LOOKAHEAD = 1
 
 # Helpers and things
 stocks_held = START_STOCK
@@ -247,10 +247,10 @@ def tradeStocks(cur_time, action):
 ########################################
 # MAIN CODE 
 ########################################
-INFILE = 'BA_15Y_01_15.csv'
+INFILE = 'KSS_16Y_00_16.csv'
 data_set = loadData(INFILE)
 weights = [0]*NUM_FEATS
-LIMIT_training = 3269 # train on data 2001-2013, test on 2014-2015
+LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
 
 print 'Im training'
 # How many times should we run this?
@@ -284,8 +284,8 @@ for cur_time in range(LIMIT_training,len(data_set)):
     store_actions.append(temp)
 
 print weights
-np.savetxt("approx_actions.csv",store_actions, delimiter=",")
-np.savetxt("approx_port.csv",portfolio, delimiter=",")
+np.savetxt("KSS_approx_actions.csv",store_actions, delimiter=",")
+np.savetxt("KSS_approx_port.csv",portfolio, delimiter=",")
 
 
 ########################################
@@ -296,12 +296,12 @@ np.savetxt("approx_port.csv",portfolio, delimiter=",")
 fig = plt.figure()
 ax1 = fig.add_subplot(211)
 ax2 = fig.add_subplot(212)
-stock = 'BA_2Y_14_15.csv'
+stock = 'KSS_2Y_14_16.csv'
 stockdata = loadData(stock)
 ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
 ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
-ax1.axis([0,600,0,160])
-ax2.axis([0,600,0,np.max(portfolio)])
+# ax1.axis([0,600,0,160])
+# ax2.axis([0,600,0,np.max(portfolio)])
 plt.show()
 
 

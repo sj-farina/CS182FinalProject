@@ -14,11 +14,7 @@ import random as rd
 import math, collections, sys
 
 # Pick the file to read from
-# INFILE = 'BA_6M_15.csv'
-# INFILE = 'BA_1Y_15.csv'
-# INFILE = 'BA_2Y_14_15.csv'
-# INFILE = 'BA_5Y_11_15.csv'
-INFILE = 'BA_15Y_01_13.csv'
+INFILE = 'KSS_16Y_00_16.csv'
 
 
 # Initialize the starting number of stocks and the starting bank balance
@@ -33,7 +29,6 @@ qvalues = []
 
 
 # Load the training file
-
 def loadData(file):
     file = np.genfromtxt(file, delimiter=',', skip_header=1,
             skip_footer=1, names=['date', 'open', 'high', 'low', 'close', 'adj'])
@@ -49,15 +44,13 @@ def loadData(file):
 # Find the slope between this point and the last
 def getShortTermTrend(cur_time):
     # # if this is the first data point, assume a slope of zero
-    # if cur_time == 0:
-    #     return 0
     # Multiply by 100, set to int, equiv of truncating at 1 decimals
-    slope = int((data_set[cur_time] - data_set[cur_time - LOOKAHEAD])*5)
+    slope = int((data_set[cur_time] - data_set[cur_time - LOOKBACK])*6)
     # Cap -10 to 10 to limit state space
-    if slope > 50:
-        return 50
-    if slope < -50:
-        return -50
+    if slope > 60:
+        return 60
+    if slope < -60:
+        return -60
     return slope
 
 # Determine which actions are available given stocks held and bank balance
@@ -170,18 +163,19 @@ def tradeStocks(cur_time, action):
 # Training variables
 
 EPSILON = 0.05
-ALPHA = 1
+ALPHA = 0.2
 DISCOUNT = 0.8
 ITERATIONS = 100
-LOOKAHEAD = 20
+LOOKAHEAD = 5
+LOOKBACK = 1
 
 # Optional plot for reference
 fig = plt.figure()
-# ax1 = fig.add_subplot(311)
-ax2 = fig.add_subplot(111)
+ax1 = fig.add_subplot(311)
+ax2 = fig.add_subplot(312)
 
-LIMIT_training = 3269 # train on data 2001-2013, test on 2014-2015
-INFILE = 'BA_15Y_01_15.csv'
+LIMIT_training = 3522 # train on data 2000-2013, test on 2014-2015
+INFILE = 'KSS_16Y_00_16.csv'
 data_set = loadData(INFILE)
 
 # for i in alpha:
@@ -218,14 +212,14 @@ for cur_time in range(LIMIT_training,len(data_set)):
         temp = -1
     store_actions.append(temp)
 ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
-np.savetxt("qlearner_alphas.csv",portfolio, delimiter=",")
+np.savetxt("KSS_Qlearner.csv",portfolio, delimiter=",")
 
 
-# stock = 'BA_2Y_14_15.csv'
-# stockdata = loadData(stock)
-# ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
+stock = 'KSS_2Y_14_16.csv'
+stockdata = loadData(stock)
+ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
 # ax2.legend(alpha, loc='best')
-plt.show()
+# plt.show()
 
 # np.savetxt("qlearner_actions.csv",store_actions, delimiter=",")
 # np.savetxt("qlearner_port.csv",portfolio, delimiter=",")
@@ -240,7 +234,7 @@ START_BANK = 10000
 START_STOCK = 0
 # INFILE = 'BA_6M_15.csv'
 # INFILE = 'BA_1Y_15.csv'
-INFILE = 'BA_2Y_14_15.csv'
+INFILE = 'KSS_2Y_14_16.csv'
 # INFILE = 'BA_5Y_11_15.csv'
 # INFILE = 'BA_15Y_01_15.csv'
 
@@ -330,9 +324,9 @@ ax3.set_title("Portfolio Value")
 ax3.set_xlabel('time')
 ax3.set_ylabel('value')
 
-# for each in range(TRIALS):
-rand_port = randomWalk(stock)
-# ax3.plot(range(len(rand_port)), rand_port, label='Portfolio Value')
+for each in range(TRIALS):
+    rand_port = randomWalk(stock)
+    ax3.plot(range(len(rand_port)), rand_port, label='Portfolio Value')
 
 # leg = ax3.legend()
 # leg = ax2.legend()

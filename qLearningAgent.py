@@ -45,12 +45,12 @@ def loadData(file):
 def getShortTermTrend(cur_time):
     # # if this is the first data point, assume a slope of zero
     # Multiply by 100, set to int, equiv of truncating at 1 decimals
-    slope = int((data_set[cur_time] - data_set[cur_time - LOOKBACK])*6)
+    slope = int((data_set[cur_time] - data_set[cur_time - LOOKBACK])*3)
     # Cap -10 to 10 to limit state space
-    if slope > 60:
-        return 60
-    if slope < -60:
-        return -60
+    if slope > 20:
+        return 20
+    if slope < -20:
+        return -20
     return slope
 
 # Determine which actions are available given stocks held and bank balance
@@ -162,62 +162,66 @@ def tradeStocks(cur_time, action):
 ########################################
 # Training variables
 
-EPSILON = 0.05
-ALPHA = 0.2
-DISCOUNT = 0.8
+EPSILON = 0.2
+ALPHA = 0.8
+DISCOUNT = 0.05
 ITERATIONS = 100
+# looahead gives the reward
 LOOKAHEAD = 5
-LOOKBACK = 1
+# lookback gives the slope
+LOOKBACK = 2
+
 
 # Optional plot for reference
 fig = plt.figure()
 ax1 = fig.add_subplot(311)
 ax2 = fig.add_subplot(312)
 
-LIMIT_training = 3522 # train on data 2000-2013, test on 2014-2015
-INFILE = 'KSS_16Y_00_16.csv'
-data_set = loadData(INFILE)
+total = 0
+for each in range(50):
+    LIMIT_training = 3269 # train on data 2001-2013, test on 2014-2015
+    INFILE = 'BA_15Y_01_15.csv'
+    data_set = loadData(INFILE)
 
-# for i in alpha:
-#     ALPHA = i
         
-values = collections.Counter()
+    values = collections.Counter()
 
-print 'Im training'
-# How many times should we run this?
-for i in range(ITERATIONS):
-    # Iterates over array, time (cur_time) is arbitrary, two points per day
-    for cur_time in range(LOOKAHEAD, LIMIT_training - LOOKAHEAD):
+    # print 'Im training'
+    # How many times should we run this?
+    for i in range(ITERATIONS):
+        # Iterates over array, time (cur_time) is arbitrary, one point per day
+        for cur_time in range(LOOKBACK, LIMIT_training - LOOKAHEAD):
+            state = getShortTermTrend(cur_time)
+            nextState = getShortTermTrend(cur_time+1)
+            action = pickAction(state, cur_time)
+            reward = getReward(cur_time, action)
+            update(cur_time, state, action, nextState, reward)
+    # print values
+
+    # print 'im testing'
+    stocks_held = START_STOCK
+    bank_balance = START_BANK
+    portfolio = []
+    store_actions =[]
+    for cur_time in range(LIMIT_training,len(data_set)):
         state = getShortTermTrend(cur_time)
-        nextState = getShortTermTrend(cur_time+1)
-        action = pickAction(state, cur_time)
-        reward = getReward(cur_time, action)
-        update(cur_time, state, action, nextState, reward)
-# print values
+        action = getBestAction(state, cur_time)
+        tradeStocks(cur_time, action)
+        # print (state,action,stocks_held,bank_balance,portfolio[-1])
+        temp= 0
+        if action == 'buy':
+            temp = 1
+        elif action == 'sell':
+            temp = -1
+        store_actions.append(temp)
+    ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
+    print portfolio[-1] - portfolio[0]
+    total += portfolio[-1] - portfolio[0]
 
-print 'im testing'
-stocks_held = START_STOCK
-bank_balance = START_BANK
-portfolio = []
-store_actions =[]
-for cur_time in range(LIMIT_training,len(data_set)):
-    state = getShortTermTrend(cur_time)
-    action = getBestAction(state, cur_time)
-    tradeStocks(cur_time, action)
-    print (state,action,stocks_held,bank_balance,portfolio[-1])
-    temp= 0
-    if action == 'buy':
-        temp = 1
-    elif action == 'sell':
-        temp = -1
-    store_actions.append(temp)
-ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
-np.savetxt("KSS_Qlearner.csv",portfolio, delimiter=",")
-
-
-stock = 'KSS_2Y_14_16.csv'
-stockdata = loadData(stock)
-ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
+    stock = 'BA_2Y_14_15.csv'
+    stockdata = loadData(stock)
+    ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
+print "average of 20 trials =", total/50.0
 # ax2.legend(alpha, loc='best')
 # plt.show()
 
@@ -324,10 +328,13 @@ ax3.set_title("Portfolio Value")
 ax3.set_xlabel('time')
 ax3.set_ylabel('value')
 
-for each in range(TRIALS):
+
+for each in range(100):
     rand_port = randomWalk(stock)
     ax3.plot(range(len(rand_port)), rand_port, label='Portfolio Value')
+#     print rand_port[-1] - rand_port[0]
 
+# print stock[-1][1] -  stock[0][1]
 # leg = ax3.legend()
 # leg = ax2.legend()
 plt.show()

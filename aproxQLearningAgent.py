@@ -247,10 +247,10 @@ def tradeStocks(cur_time, action):
 ########################################
 # MAIN CODE 
 ########################################
-INFILE = 'BA_15Y_01_15.csv'
+INFILE = 'BA_16Y_00_16.csv'
 data_set = loadData(INFILE)
 
-LIMIT_training = 3270 # train on data 2001-2013, test on 2014-2015
+LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
 total = 0 
 fig = plt.figure()
 ax1 = fig.add_subplot(211)
@@ -302,7 +302,7 @@ print INFILE, "Approx- Q"
 # Optional plot for reference
 
 
-stock = 'BA_2Y_14_15.csv'
+stock = 'BA_2Y_14_16.csv'
 stockdata = loadData(stock)
 ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
 # ax1.axis([0,600,0,160])

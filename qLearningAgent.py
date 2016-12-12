@@ -179,8 +179,8 @@ ax2 = fig.add_subplot(312)
 
 total = 0
 for each in range(50):
-    LIMIT_training = 3270 # train on data 2001-2013, test on 2014-2015
-    INFILE = 'BA_15Y_01_15.csv'
+    LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
+    INFILE = 'BA_16Y_00_16.csv'
     data_set = loadData(INFILE)
 
         
@@ -218,7 +218,7 @@ for each in range(50):
     print portfolio[-1] - portfolio[0]
     total += portfolio[-1] - portfolio[0]
 
-    stock = 'BA_2Y_14_15.csv'
+    stock = 'BA_2Y_14_16.csv'
     stockdata = loadData(stock)
     ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
 print INFILE, "Q-learning"
@@ -239,7 +239,7 @@ START_BANK = 10000
 START_STOCK = 0
 # INFILE = 'BA_6M_15.csv'
 # INFILE = 'BA_1Y_15.csv'
-INFILE = 'BA_2Y_14_15.csv'
+INFILE = 'BA_2Y_14_16.csv'
 # INFILE = 'BA_5Y_11_15.csv'
 # INFILE = 'BA_15Y_01_15.csv'
 

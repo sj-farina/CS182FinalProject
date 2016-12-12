@@ -13,17 +13,30 @@ import matplotlib.collections  as mc
 import random as rd
 import math, collections, sys
 
+
+########################################
+# EDIT THIS CODE TO TUNE PARAMETERS
+########################################
+
 # Pick the file to read from
 # INFILE = 'BA_6M_15.csv'
 # INFILE = 'BA_1Y_15.csv'
 # INFILE = 'BA_2Y_14_15.csv'
 # INFILE = 'BA_5Y_11_15.csv'
 # INFILE = 'KSS_16Y_00_16.csv'
+INFILE = 'BA_16Y_00_16.csv'
 
-# Feature 
+LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
+
+
+# Tune these values for different k, n, and statespace
 # RUNNING_SPAN = 20
+# local span = k, lookahead = n
 LOCAL_SPAN = 5
+LOOKAHEAD = 1
 NUM_FEATS = 2
+# The +/- cutoff for state space
+CUTOFF = 20
 
 
 # Initialize the starting number of stocks and the starting bank balance
@@ -36,7 +49,11 @@ EPSILON = .2
 ALPHA = .8
 DISCOUNT = 0
 ITERATIONS = 10
-LOOKAHEAD = 1
+
+
+########################################
+# MISC
+########################################
 
 # Helpers and things
 stocks_held = START_STOCK
@@ -194,12 +211,10 @@ def update(cur_time, action, reward):
     difference = reward + DISCOUNT * maxQValue(cur_time +1) - getQValue(cur_time, action)
     for i in range(len(weights)):
         weights[i] += ALPHA * difference * features[i]
-        if weights[i]>20:
-            weights[i] = 20
-        elif weights[i] < -20:
-            weights[i]= -20
-
-
+        if weights[i]>CUTOFF:
+            weights[i] = CUTOFF
+        elif weights[i] < -CUTOFF:
+            weights[i]= -CUTOFF
 
 
 
@@ -247,10 +262,8 @@ def tradeStocks(cur_time, action):
 ########################################
 # MAIN CODE 
 ########################################
-INFILE = 'BA_16Y_00_16.csv'
 data_set = loadData(INFILE)
 
-LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
 total = 0 
 fig = plt.figure()
 ax1 = fig.add_subplot(211)
@@ -295,16 +308,20 @@ for times in range(50):
     np.savetxt("BA_approx_port.csv",portfolio, delimiter=",")
 print "average =", total*1.0/50
 print INFILE, "Approx- Q"
+
+
+
 ########################################
 # DISPLAY CODE 
 ########################################
 
 # Optional plot for reference
-
-
+# change the file as needed
 stock = 'BA_2Y_14_16.csv'
 stockdata = loadData(stock)
 ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
+
+
 # ax1.axis([0,600,0,160])
 # ax2.axis([0,600,0,np.max(portfolio)])
 plt.show()

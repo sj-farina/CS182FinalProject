@@ -3,7 +3,7 @@
 # Anita Xu & Janey Farina
 #
 # Q-Learning Agent for 182 final project
-# Code modeled after CS182 Pset 3
+# Code adapted from CS182 Pset 3
 #
 ########################################
 
@@ -13,27 +13,53 @@ import matplotlib.collections  as mc
 import random as rd
 import math, collections, sys
 
+########################################
+# EDIT THIS CODE TO TUNE PARAMETERS
+########################################
+
 # Pick the file to read from
 # INFILE = 'KSS_16Y_00_16.csv'
+INFILE = 'BA_16Y_00_16.csv'
 
+# Our datafile is one large file, this picks the cutoff point between testing and training
+LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
+
+# Training Variables
+EPSILON = 0.2
+ALPHA = 0.8
+DISCOUNT = 0
+ITERATIONS = 100
+
+# lookahead gives the reward
+LOOKAHEAD = 5
+# lookback gives the slope
+LOOKBACK = 2
 
 # Initialize the starting number of stocks and the starting bank balance
 START_BANK = 10000
 START_STOCK = 0
 
-# Helpers and things
+# testing parameters for random agent
+MAX_SELL = 50
+MIN_SELL = 1
+TRIALS = 10
+
+
+########################################
+# MISC
+########################################
+
+# Helpers and counters
 stocks_held = START_STOCK
 bank_balance = START_BANK
 portfolio = []
 qvalues = [] 
-
 
 # Load the training file
 def loadData(file):
     file = np.genfromtxt(file, delimiter=',', skip_header=1,
             skip_footer=1, names=['date', 'open', 'high', 'low', 'close', 'adj'])
     close_value = file['close']
-    # Zips the opening and closing values into one array
     return close_value
 
 
@@ -154,150 +180,17 @@ def tradeStocks(cur_time, action):
     elif action == 'buy':
         buy(cur_time)
 
-
-
-
-########################################
-# MAIN CODE 
-########################################
-# Training variables
-
-EPSILON = 0.2
-ALPHA = 0.8
-DISCOUNT = 0
-ITERATIONS = 100
-# looahead gives the reward
-LOOKAHEAD = 5
-# lookback gives the slope
-LOOKBACK = 2
-
-
-# Optional plot for reference
-fig = plt.figure()
-ax1 = fig.add_subplot(311)
-ax2 = fig.add_subplot(312)
-
-total = 0
-for each in range(50):
-    LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
-    INFILE = 'BA_16Y_00_16.csv'
-    data_set = loadData(INFILE)
-
-        
-    values = collections.Counter()
-
-    # print 'Im training'
-    # How many times should we run this?
-    for i in range(ITERATIONS):
-        # Iterates over array, time (cur_time) is arbitrary, one point per day
-        for cur_time in range(LOOKBACK, LIMIT_training - LOOKAHEAD):
-            state = getShortTermTrend(cur_time)
-            nextState = getShortTermTrend(cur_time+1)
-            action = pickAction(state, cur_time)
-            reward = getReward(cur_time, action)
-            update(cur_time, state, action, nextState, reward)
-    # print values
-
-    # print 'im testing'
-    stocks_held = START_STOCK
-    bank_balance = START_BANK
-    portfolio = []
-    store_actions =[]
-    for cur_time in range(LIMIT_training,len(data_set)):
-        state = getShortTermTrend(cur_time)
-        action = getBestAction(state, cur_time)
-        tradeStocks(cur_time, action)
-        # print (state,action,stocks_held,bank_balance,portfolio[-1])
-        temp= 0
-        if action == 'buy':
-            temp = 1
-        elif action == 'sell':
-            temp = -1
-        store_actions.append(temp)
-    ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
-    print portfolio[-1] - portfolio[0]
-    total += portfolio[-1] - portfolio[0]
-
-    stock = 'BA_2Y_14_16.csv'
-    stockdata = loadData(stock)
-    ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
-print INFILE, "Q-learning"
-print "average of 50 trials =", total/50.0
-# ax2.legend(alpha, loc='best')
-# plt.show()
-
-# np.savetxt("qlearner_actions.csv",store_actions, delimiter=",")
-# np.savetxt("qlearner_port.csv",portfolio, delimiter=",")
-########################################
-# DISPLAY CODE 
-########################################
-
-
-
-# Initialize the starting number of stocks and the starting bank balance
-START_BANK = 10000
-START_STOCK = 0
-# INFILE = 'BA_6M_15.csv'
-# INFILE = 'BA_1Y_15.csv'
-INFILE = 'BA_2Y_14_16.csv'
-# INFILE = 'BA_5Y_11_15.csv'
-# INFILE = 'BA_15Y_01_15.csv'
-
-
-# testing parameters to be tuned by user
-MAX_SELL = 50
-MIN_SELL = 1
-TRIALS = 10
-
-
-# load the training file
-def loadData(file):
-    return np.genfromtxt(file, delimiter=',', skip_header=1,
-            skip_footer=1, names=['date', 'open', 'high', 'low', 'close', 'adj'])
-
-# buys num_to_trade number of stocks and updates bank balance accordingly, debt is allowed
-def buy(time_index, num_to_trade = 1):
-    global stocks_held, bank_balance
-    if (num_to_trade*stock['open'][time_index] > bank_balance):
-        num_to_trade = int(bank_balance)/int(stock['open'][time_index])
-    stocks_held += num_to_trade
-    bank_balance -= num_to_trade*stock['open'][time_index]
-    portfolio.append(stocks_held*stock['open'][time_index] + bank_balance)
-
-
-# sells num_to_trade number of stocks and updates bank balance accordingly, 
-# selling more than you own is not permitted
-def sell(time_index, num_to_trade = 1):
-    global stocks_held, bank_balance
-
-    if stocks_held <= 0:
-        hold(time_index)
-    else:
-        if ((stocks_held - num_to_trade) <= 0): 
-            bank_balance += stocks_held*stock['open'][time_index]
-            stocks_held = 0
-        else:
-            stocks_held -= num_to_trade
-            bank_balance += num_to_trade*stock['open'][time_index]
-        portfolio.append(stocks_held*stock['open'][time_index] + bank_balance)
-
-
-# appends the same value to balance
-def hold(time_index):
-    portfolio.append(stocks_held*stock['open'][time_index] + bank_balance)
-
-
+# Randomly buys sells or holds at each time point, this is our baseline agent to beat
 def randomWalk(stock):
     global stocks_held, bank_balance, portfolio
     stocks_held = START_STOCK
     bank_balance = START_BANK
     portfolio = []
     store_array=[]
-    for i in range(len(stock['open'])):
+    for i in range(len(stock)):
         rand_num = rd.randint(-1,1)
         # rand_to_trade = 1
         rand_to_trade = rd.randint(MIN_SELL, MAX_SELL)
-        #wtf? why does python not have switch statements?
         if rand_num == -1:
             sell(i, rand_to_trade)
         elif rand_num == 0:
@@ -310,13 +203,65 @@ def randomWalk(stock):
     # np.savetxt("random_port.csv",portfolio, delimiter=",")
     return portfolio
 
-###########
-# Main code
-###########
+
+########################################
+# MAIN CODE 
+########################################
+
+# Optional plot for reference
+fig = plt.figure()
+ax1 = fig.add_subplot(311)
+ax2 = fig.add_subplot(312)
 
 
-# Pick the data file to read from
-stock = loadData(INFILE)
+total = 0
+data_set = loadData(INFILE) 
+values = collections.Counter()
+
+# Train for ITERATTIONS numer of times
+# print 'Im training'
+for i in range(ITERATIONS):
+    # Iterates over array, time (cur_time) is arbitrary, one point per day
+    for cur_time in range(LOOKBACK, LIMIT_training - LOOKAHEAD):
+        state = getShortTermTrend(cur_time)
+        nextState = getShortTermTrend(cur_time+1)
+        action = pickAction(state, cur_time)
+        reward = getReward(cur_time, action)
+        update(cur_time, state, action, nextState, reward)
+# print values
+
+# Test on a new set of data
+# print 'im testing'
+stocks_held = START_STOCK
+bank_balance = START_BANK
+portfolio = []
+store_actions =[]
+for cur_time in range(LIMIT_training,len(data_set)):
+    state = getShortTermTrend(cur_time)
+    action = getBestAction(state, cur_time)
+    tradeStocks(cur_time, action)
+    # print (state,action,stocks_held,bank_balance,portfolio[-1])
+    temp= 0
+    if action == 'buy':
+        temp = 1
+    elif action == 'sell':
+        temp = -1
+    store_actions.append(temp)
+ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
+print portfolio[-1] - portfolio[0]
+total += portfolio[-1] - portfolio[0]
+
+########################################
+# DISPLAY CODE 
+########################################
+
+stock = 'BA_2Y_14_16.csv'
+stockdata = loadData(stock)
+ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
+print INFILE, "Q-learning"
+print "average of 50 trials =", total/50.0
+# ax2.legend(alpha, loc='best')
+# plt.show()
 
 # Setting up the plot
 # fig = plt.figure()
@@ -331,7 +276,7 @@ ax3.set_ylabel('value')
 
 rand_total = 0
 for each in range(50):
-    rand_port = randomWalk(stock)
+    rand_port = randomWalk(data_set)
     ax3.plot(range(len(rand_port)), rand_port, label='Portfolio Value')
 #     print rand_port[-1] - rand_port[0]
     rand_total += rand_port[-1]-10000

@@ -13,17 +13,30 @@ import matplotlib.collections  as mc
 import random as rd
 import math, collections, sys
 
+
+########################################
+# EDIT THIS CODE TO TUNE PARAMETERS
+########################################
+
 # Pick the file to read from
 # INFILE = 'BA_6M_15.csv'
 # INFILE = 'BA_1Y_15.csv'
 # INFILE = 'BA_2Y_14_15.csv'
 # INFILE = 'BA_5Y_11_15.csv'
 # INFILE = 'KSS_16Y_00_16.csv'
+INFILE = 'BA_16Y_00_16.csv'
 
-# Feature 
-# RUNNING_SPAN = 20
+# Our datafile is one large file, this picks the cutoff point between testing and training
+LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
+
+
+# Tune these values for different k, n, and statespace
+# Local span = k, lookahead = n
 LOCAL_SPAN = 5
+LOOKAHEAD = 1
 NUM_FEATS = 2
+# The +/- cutoff for state space
+CUTOFF = 20
 
 
 # Initialize the starting number of stocks and the starting bank balance
@@ -36,7 +49,11 @@ EPSILON = .2
 ALPHA = .8
 DISCOUNT = 0
 ITERATIONS = 10
-LOOKAHEAD = 1
+
+
+########################################
+# MISC
+########################################
 
 # Helpers and things
 stocks_held = START_STOCK
@@ -45,12 +62,11 @@ portfolio = []
 features = [0]*NUM_FEATS
 
 
-# Load the training file
+# Load the training file, return closing data
 def loadData(file):
     file = np.genfromtxt(file, delimiter=',', skip_header=1,
             skip_footer=1, names=['date', 'open', 'high', 'low', 'close', 'adj'])
     close_value = file['close']
-    # Zips the opening and closing values into one array
     return close_value
 
 
@@ -60,18 +76,8 @@ def loadData(file):
 
 # Determine which actions are available given stocks held and bank balance
 def getLegalActions(cur_time):
-    # For the simplest case, lets just say all actions are always valid
+    # For the simplest case, we just say all actions are always valid and reassess in buy() and sell()
     return ['buy', 'sell', 'hold']
-
-    # If you have no $$ and no stocks, you can't do anything
-    if bank_balance <= 0:
-        if stocks_held <= 0:
-            return [hold]
-        return [sell, hold]
-    elif stocks_held <= 0:
-        return [buy, hold]
-    else:
-        return [buy, sell, hold]
 
 # Determine the reward we get in a given state given the action
 # Reward is the difference between current portfolio and next portfolio
@@ -93,13 +99,7 @@ def pickAction(cur_time):
 
 # Find the slope between this point and the last
 def yesterdaySlope(cur_time, action):
-    # # if this is the first data point, assume a slope of zero
-    # if cur_time == 0:
-    #     return 0
-
-    # Multiply by 100, set to int, equiv of truncating at 2 decimals
     slope = float((data_set[cur_time] - data_set[cur_time - 1])*1.0/data_set[cur_time - 1])
-    # Cap -10 to 10 to limit state space
     feat1= 0
     if action == 'buy':
         feat1 = slope * (stocks_held + default)/1000.0
@@ -107,10 +107,6 @@ def yesterdaySlope(cur_time, action):
         feat1 = slope * (stocks_held)/1000.0
     else:
         feat1 = slope * (stocks_held - default)/1000.0
-    # if feat1 > 10:
-    #     return 10
-    # if feat1 < -10:
-    #     return -10
     return feat1
 
 # Returns average
@@ -146,12 +142,12 @@ def meanDiff(cur_time, span,action):
         feat3 = slope * (stocks_held - default)/1000.0
     return feat3
 
+# Returns an array of all implemented features
 def getFeatures(cur_time,action):
     global features
     features[0] = yesterdaySlope(cur_time, action)
     features[1] = avgSlope(cur_time, LOCAL_SPAN,action)
     # features[2] = meanDiff (cur_time, RUNNING_SPAN,action)
-
     return features
 
 # Determine the q value from (weights (dot) features)
@@ -162,6 +158,7 @@ def getQValue(cur_time, action):
         qval += weights[i] * features[i]
     return qval
 
+# Return the max possible Q value given a state
 def maxQValue(cur_time):
     bestScore = -sys.maxint -1
     bestAction = 'hold'
@@ -171,7 +168,7 @@ def maxQValue(cur_time):
             bestScore = score
             bestAction = action
     return bestScore
-
+# Returns the best possible action given a state
 def getBestAction(cur_time):
     bestScore = -sys.maxint -1
     bestAction = 'hold'
@@ -182,9 +179,6 @@ def getBestAction(cur_time):
             bestAction = action
     return bestAction
 
-# def getBestAction(cur_time):
-#     return maxQValue(cur_time)[1]
-
 # Update our the weights given a transition
 def update(cur_time, action, reward):
     features = getFeatures(cur_time,action)
@@ -194,12 +188,10 @@ def update(cur_time, action, reward):
     difference = reward + DISCOUNT * maxQValue(cur_time +1) - getQValue(cur_time, action)
     for i in range(len(weights)):
         weights[i] += ALPHA * difference * features[i]
-        if weights[i]>20:
-            weights[i] = 20
-        elif weights[i] < -20:
-            weights[i]= -20
-
-
+        if weights[i]>CUTOFF:
+            weights[i] = CUTOFF
+        elif weights[i] < -CUTOFF:
+            weights[i]= -CUTOFF
 
 
 
@@ -247,64 +239,69 @@ def tradeStocks(cur_time, action):
 ########################################
 # MAIN CODE 
 ########################################
-INFILE = 'BA_16Y_00_16.csv'
 data_set = loadData(INFILE)
 
-LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
 total = 0 
 fig = plt.figure()
 ax1 = fig.add_subplot(211)
 ax2 = fig.add_subplot(212)
-for times in range(50):
-    # print 'Im training'
-    weights = [0]*NUM_FEATS
-    for i in range(ITERATIONS):
-        # Iterates over array, time (cur_time) is arbitrary, two points per day
-        for cur_time in range(LOOKAHEAD, LIMIT_training-LOOKAHEAD):
-            state= [data_set[cur_time],stocks_held]
-            action = pickAction(cur_time)
-            reward = getReward(cur_time, action)
-            update(cur_time, action, reward)
 
-    # TESTFILE = 'BA_2Y_14_15.csv'
-    # data_set = loadData(TESTFILE)
+# # To test multiple runs on the same files, uncomment next line and indent up to line 286
+# for times in range(50):
+
+# print 'Im training'
+weights = [0]*NUM_FEATS
+for i in range(ITERATIONS):
+    # Iterates over array, time (cur_time) is arbitrary, two points per day
+    for cur_time in range(LOOKAHEAD, LIMIT_training-LOOKAHEAD):
+        state= [data_set[cur_time],stocks_held]
+        action = pickAction(cur_time)
+        reward = getReward(cur_time, action)
+        update(cur_time, action, reward)
+
+# TESTFILE = 'BA_2Y_14_15.csv'
+# data_set = loadData(TESTFILE)
 
 
-    # print 'im testing'
-    # print weights
-    stocks_held = START_STOCK
-    bank_balance = START_BANK
-    portfolio = []
-    store_actions =[]
-    for cur_time in range(LIMIT_training,len(data_set)):
-        action = getBestAction(cur_time)
-        tradeStocks(cur_time, action)
-        # print(action, stocks_held, bank_balance, portfolio[-1])
-        temp= 0
-        if action == 'buy':
-            temp = 1
-        elif action == 'sell':
-            temp = -1
-        store_actions.append(temp)
-    total += portfolio[-1] - portfolio[0]
-    print portfolio[-1] - portfolio[0]
-    # print weights
-    ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
+# print 'im testing'
+# print weights
+stocks_held = START_STOCK
+bank_balance = START_BANK
+portfolio = []
+store_actions =[]
+for cur_time in range(LIMIT_training,len(data_set)):
+    action = getBestAction(cur_time)
+    tradeStocks(cur_time, action)
+    # print(action, stocks_held, bank_balance, portfolio[-1])
+    temp= 0
+    if action == 'buy':
+        temp = 1
+    elif action == 'sell':
+        temp = -1
+    store_actions.append(temp)
+total += portfolio[-1] - portfolio[0]
+print portfolio[-1] - portfolio[0]
+# print weights
+ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
 
-    np.savetxt("BA_approx_actions.csv",store_actions, delimiter=",")
-    np.savetxt("BA_approx_port.csv",portfolio, delimiter=",")
+np.savetxt("BA_approx_actions.csv",store_actions, delimiter=",")
+np.savetxt("BA_approx_port.csv",portfolio, delimiter=",")
 print "average =", total*1.0/50
 print INFILE, "Approx- Q"
+
+
+
 ########################################
 # DISPLAY CODE 
 ########################################
 
 # Optional plot for reference
-
-
+# change the file as needed
 stock = 'BA_2Y_14_16.csv'
 stockdata = loadData(stock)
 ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
+
+
 # ax1.axis([0,600,0,160])
 # ax2.axis([0,600,0,np.max(portfolio)])
 plt.show()

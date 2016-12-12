@@ -19,10 +19,12 @@ import math, collections, sys
 
 # Pick the file to read from
 # INFILE = 'KSS_16Y_00_16.csv'
-
-LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
 INFILE = 'BA_16Y_00_16.csv'
 
+# Our datafile is one large file, this picks the cutoff point between testing and training
+LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
+
+# Training Variables
 EPSILON = 0.2
 ALPHA = 0.8
 DISCOUNT = 0
@@ -37,12 +39,10 @@ LOOKBACK = 2
 START_BANK = 10000
 START_STOCK = 0
 
-
 # testing parameters for random agent
 MAX_SELL = 50
 MIN_SELL = 1
 TRIALS = 10
-
 
 
 ########################################
@@ -180,6 +180,7 @@ def tradeStocks(cur_time, action):
     elif action == 'buy':
         buy(cur_time)
 
+# Randomly buys sells or holds at each time point, this is our baseline agent to beat
 def randomWalk(stock):
     global stocks_held, bank_balance, portfolio
     stocks_held = START_STOCK
@@ -190,7 +191,6 @@ def randomWalk(stock):
         rand_num = rd.randint(-1,1)
         # rand_to_trade = 1
         rand_to_trade = rd.randint(MIN_SELL, MAX_SELL)
-        #wtf? why does python not have switch statements?
         if rand_num == -1:
             sell(i, rand_to_trade)
         elif rand_num == 0:
@@ -218,8 +218,8 @@ total = 0
 data_set = loadData(INFILE) 
 values = collections.Counter()
 
+# Train for ITERATTIONS numer of times
 # print 'Im training'
-# How many times should we run this?
 for i in range(ITERATIONS):
     # Iterates over array, time (cur_time) is arbitrary, one point per day
     for cur_time in range(LOOKBACK, LIMIT_training - LOOKAHEAD):
@@ -230,6 +230,7 @@ for i in range(ITERATIONS):
         update(cur_time, state, action, nextState, reward)
 # print values
 
+# Test on a new set of data
 # print 'im testing'
 stocks_held = START_STOCK
 bank_balance = START_BANK

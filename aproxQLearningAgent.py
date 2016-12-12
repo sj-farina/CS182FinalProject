@@ -3,7 +3,7 @@
 # Anita Xu & Janey Farina
 #
 # Approximate Q-Learning Agent for 182 final project
-# Code modeled after CS182 Pset 3
+# Code modeled after CS182 Pset 3 (from UC Berkeley, http://ai.berkeley.edu)
 #
 ########################################
 
@@ -19,10 +19,6 @@ import math, collections, sys
 ########################################
 
 # Pick the file to read from
-# INFILE = 'BA_6M_15.csv'
-# INFILE = 'BA_1Y_15.csv'
-# INFILE = 'BA_2Y_14_15.csv'
-# INFILE = 'BA_5Y_11_15.csv'
 # INFILE = 'KSS_16Y_00_16.csv'
 INFILE = 'BA_16Y_00_16.csv'
 
@@ -34,7 +30,7 @@ LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
 # Local span = k, lookahead = n
 LOCAL_SPAN = 5
 LOOKAHEAD = 1
-NUM_FEATS = 2
+NUM_FEATS = 2 # 2 features
 # The +/- cutoff for state space
 CUTOFF = 20
 
@@ -109,7 +105,7 @@ def yesterdaySlope(cur_time, action):
         feat1 = slope * (stocks_held - default)/1000.0
     return feat1
 
-# Returns average
+# Returns average slope in past span days
 def avgSlope(cur_time, span, action):
     avg = 0.0
     for i in range(span):
@@ -161,12 +157,10 @@ def getQValue(cur_time, action):
 # Return the max possible Q value given a state
 def maxQValue(cur_time):
     bestScore = -sys.maxint -1
-    bestAction = 'hold'
     for action in ['buy', 'hold', 'sell']:
         score = getQValue(cur_time, action)
         if score > bestScore:
             bestScore = score
-            bestAction = action
     return bestScore
 # Returns the best possible action given a state
 def getBestAction(cur_time):
@@ -182,9 +176,7 @@ def getBestAction(cur_time):
 # Update our the weights given a transition
 def update(cur_time, action, reward):
     features = getFeatures(cur_time,action)
-    # print 'reward', reward
-    # print 'qval', getQValue(cur_time, action)
-    # print 'weights', weights
+    # update using Approximate Q-learning equations in Lecture 11
     difference = reward + DISCOUNT * maxQValue(cur_time +1) - getQValue(cur_time, action)
     for i in range(len(weights)):
         weights[i] += ALPHA * difference * features[i]
@@ -279,14 +271,14 @@ for cur_time in range(LIMIT_training,len(data_set)):
     elif action == 'sell':
         temp = -1
     store_actions.append(temp)
-total += portfolio[-1] - portfolio[0]
+# total += portfolio[-1] - portfolio[0]
 print portfolio[-1] - portfolio[0]
 # print weights
 ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
 
 np.savetxt("BA_approx_actions.csv",store_actions, delimiter=",")
 np.savetxt("BA_approx_port.csv",portfolio, delimiter=",")
-print "average =", total*1.0/50
+# print "average =", total*1.0/1.0
 print INFILE, "Approx- Q"
 
 

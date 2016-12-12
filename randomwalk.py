@@ -19,7 +19,7 @@ START_BANK = 10000
 START_STOCK = 0
 # INFILE = 'BA_6M_15.csv'
 # INFILE = 'BA_1Y_15.csv'
-INFILE = 'BA_2Y_14_15.csv'
+INFILE = 'BA_2Y_14_16.csv'
 # INFILE = 'BA_5Y_11_15.csv'
 # INFILE = 'BA_15Y_01_15.csv'
 
@@ -27,7 +27,7 @@ INFILE = 'BA_2Y_14_15.csv'
 # testing parameters to be tuned by user
 MAX_SELL = 50
 MIN_SELL = 1
-TRIALS = 10
+TRIALS = 50
 
 
 # load the training file
@@ -84,7 +84,7 @@ def randomWalk(stock):
 			hold(i)
 		elif rand_num == 2:
 			buy(i, rand_to_trade)
-		print(rand_num,stocks_held,bank_balance,portfolio[-1])
+		# print(rand_num,stocks_held,bank_balance,portfolio[-1])
 	return portfolio
 
 ###########
@@ -106,12 +106,13 @@ ax2.set_title("Portfolio Value")
 ax2.set_xlabel('time')
 ax2.set_ylabel('value')
 
-ax1.plot(range(len(stock['open'])), stock['open'], color='r', label='Stock Price')
-
+ax1.plot(range(len(stock['close'])), stock['close'], color='r', label='Stock Price')
+total = 0
 for each in range(TRIALS):
 	rand_port = randomWalk(stock)
 	ax2.plot(range(len(rand_port)), rand_port, label='Portfolio Value')
-
+	total += rand_port[-1] - START_BANK
+print "average =", total*1.0/TRIALS
 leg = ax1.legend()
 # leg = ax2.legend()
 plt.show()

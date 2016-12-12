@@ -3,7 +3,7 @@
 # Anita Xu & Janey Farina
 #
 # Q-Learning Agent for 182 final project
-# Code adapted from CS182 Pset 3
+# Code adapted from our CS182 Pset 3 (from UC Berkeley, http://ai.berkeley.edu)
 #
 ########################################
 
@@ -20,6 +20,8 @@ import math, collections, sys
 # Pick the file to read from
 # INFILE = 'KSS_16Y_00_16.csv'
 INFILE = 'BA_16Y_00_16.csv'
+INFILE_2 = 'BA_2Y_14_16.csv' # 2 year data
+
 
 # Our datafile is one large file, this picks the cutoff point between testing and training
 LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
@@ -146,10 +148,10 @@ def update(cur_time, state, action, nextState, reward):
 # STOCK MANIPULATION CODE
 ########################################
 
-# buys num_to_trade number of stocks and updates bank balance accordingly, debt is allowed
+# buys num_to_trade number of stocks and updates bank balance accordingly
 def buy(cur_time, num_to_trade = 10):
     global stocks_held, bank_balance
-    if num_to_trade*data_set[cur_time] > bank_balance:
+    if num_to_trade*data_set[cur_time] > bank_balance: #no debt allowed
         num_to_trade = int(bank_balance)/int(data_set[cur_time])
     stocks_held += num_to_trade
     bank_balance -= num_to_trade*data_set[cur_time]
@@ -159,7 +161,7 @@ def buy(cur_time, num_to_trade = 10):
 # sells num_to_trade number of stocks and updates bank balance accordingly, 
 def sell(cur_time, num_to_trade = 10):
     global stocks_held, bank_balance
-    if ((stocks_held - num_to_trade) <= 0): 
+    if ((stocks_held - num_to_trade) <= 0): #sell all stocks
         bank_balance += stocks_held*data_set[cur_time]
         stocks_held = 0
     else:
@@ -180,8 +182,7 @@ def tradeStocks(cur_time, action):
     elif action == 'buy':
         buy(cur_time)
 
-# Randomly buys sells or holds at each time point, this is our baseline agent to beat
-def randomWalk(stock):
+def randomagent(stock):
     global stocks_held, bank_balance, portfolio
     stocks_held = START_STOCK
     bank_balance = START_BANK
@@ -189,7 +190,7 @@ def randomWalk(stock):
     store_array=[]
     for i in range(len(stock)):
         rand_num = rd.randint(-1,1)
-        # rand_to_trade = 1
+        rand_to_trade = 1
         rand_to_trade = rd.randint(MIN_SELL, MAX_SELL)
         if rand_num == -1:
             sell(i, rand_to_trade)
@@ -197,29 +198,28 @@ def randomWalk(stock):
             hold(i)
         elif rand_num == 1:
             buy(i, rand_to_trade)
-        # print(rand_num,stocks_held,bank_balance,portfolio[-1])
+
+        # print(stocks_held,portfolio[-1])
         store_array.append(rand_num)
     # np.savetxt("random_actions.csv",store_array, delimiter=",")
     # np.savetxt("random_port.csv",portfolio, delimiter=",")
     return portfolio
 
-
 ########################################
-# MAIN CODE 
+# MAIN CODE  Q-Learning Agent
 ########################################
-
+data_set = loadData(INFILE) 
 # Optional plot for reference
 fig = plt.figure()
 ax1 = fig.add_subplot(311)
 ax2 = fig.add_subplot(312)
 
+# total = 0
 
-total = 0
-data_set = loadData(INFILE) 
+# for times in range(10):
+    # Train for ITERATTIONS numer of times
+    # print 'Im training'
 values = collections.Counter()
-
-# Train for ITERATTIONS numer of times
-# print 'Im training'
 for i in range(ITERATIONS):
     # Iterates over array, time (cur_time) is arbitrary, one point per day
     for cur_time in range(LOOKBACK, LIMIT_training - LOOKAHEAD):
@@ -249,17 +249,18 @@ for cur_time in range(LIMIT_training,len(data_set)):
     store_actions.append(temp)
 ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
 print portfolio[-1] - portfolio[0]
-total += portfolio[-1] - portfolio[0]
+    # total += portfolio[-1] - portfolio[0]
+# print"average=", total*1.0/10
 
 ########################################
-# DISPLAY CODE 
+# DISPLAY Graphs 
 ########################################
 
-stock = 'BA_2Y_14_16.csv'
-stockdata = loadData(stock)
-ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
-print INFILE, "Q-learning"
-print "average of 50 trials =", total/50.0
+
+data_set = loadData(INFILE_2)
+ax1.plot(range(len(data_set)), data_set, color='r', label='Stock Price')
+# print INFILE, "Q-learning"
+# print "average of 50 trials =", total/50.0
 # ax2.legend(alpha, loc='best')
 # plt.show()
 
@@ -274,19 +275,22 @@ ax3.set_title("Portfolio Value")
 ax3.set_xlabel('time')
 ax3.set_ylabel('value')
 
+########################################
+# Random Agent
+########################################
+# Randomly buys sells or holds at each time point, this is our baseline agent to beat
+data_set = loadData(INFILE_2)
 rand_total = 0
 for each in range(50):
-    rand_port = randomWalk(data_set)
+    rand_port = randomagent(data_set)
     ax3.plot(range(len(rand_port)), rand_port, label='Portfolio Value')
 #     print rand_port[-1] - rand_port[0]
-    rand_total += rand_port[-1]-10000
-    print rand_port[-1]-10000
-# print stock[-1][1] -  stock[0][1]
-# leg = ax3.legend()
-# leg = ax2.legend()
+    rand_total += rand_port[-1]-START_BANK
+    # print rand_port[-1]-10000
+print "average_random=", rand_total/50.0
 plt.show()
 
-print "average_random=", rand_total/50.0
+
 
 
 

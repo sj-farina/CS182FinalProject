@@ -18,7 +18,7 @@ import math, collections, sys
 # INFILE = 'BA_1Y_15.csv'
 # INFILE = 'BA_2Y_14_15.csv'
 # INFILE = 'BA_5Y_11_15.csv'
-INFILE = 'KSS_16Y_00_16.csv'
+# INFILE = 'KSS_16Y_00_16.csv'
 
 # Feature 
 # RUNNING_SPAN = 20
@@ -32,9 +32,9 @@ START_STOCK = 0
 default = 10 # default buy or sell 10 stocks
 
 # Training variables
-EPSILON = .05
-ALPHA = .5
-DISCOUNT = .8
+EPSILON = .2
+ALPHA = .8
+DISCOUNT = 0
 ITERATIONS = 10
 LOOKAHEAD = 1
 
@@ -247,59 +247,64 @@ def tradeStocks(cur_time, action):
 ########################################
 # MAIN CODE 
 ########################################
-INFILE = 'KSS_16Y_00_16.csv'
+INFILE = 'BA_15Y_01_15.csv'
 data_set = loadData(INFILE)
-weights = [0]*NUM_FEATS
-LIMIT_training = 3522 # train on data 2001-2013, test on 2014-2015
 
-print 'Im training'
-# How many times should we run this?
-for i in range(ITERATIONS):
-    # Iterates over array, time (cur_time) is arbitrary, two points per day
-    for cur_time in range(LOOKAHEAD, LIMIT_training-LOOKAHEAD):
-        state= [data_set[cur_time],stocks_held]
-        action = pickAction(cur_time)
-        reward = getReward(cur_time, action)
-        update(cur_time, action, reward)
+LIMIT_training = 3270 # train on data 2001-2013, test on 2014-2015
+total = 0 
+fig = plt.figure()
+ax1 = fig.add_subplot(211)
+ax2 = fig.add_subplot(212)
+for times in range(50):
+    # print 'Im training'
+    weights = [0]*NUM_FEATS
+    for i in range(ITERATIONS):
+        # Iterates over array, time (cur_time) is arbitrary, two points per day
+        for cur_time in range(LOOKAHEAD, LIMIT_training-LOOKAHEAD):
+            state= [data_set[cur_time],stocks_held]
+            action = pickAction(cur_time)
+            reward = getReward(cur_time, action)
+            update(cur_time, action, reward)
 
-# TESTFILE = 'BA_2Y_14_15.csv'
-# data_set = loadData(TESTFILE)
-
-
-print 'im testing'
-# print weights
-stocks_held = START_STOCK
-bank_balance = START_BANK
-portfolio = []
-store_actions =[]
-for cur_time in range(LIMIT_training,len(data_set)):
-    action = getBestAction(cur_time)
-    tradeStocks(cur_time, action)
-    print(action, stocks_held, bank_balance, portfolio[-1])
-    temp= 0
-    if action == 'buy':
-        temp = 1
-    elif action == 'sell':
-        temp = -1
-    store_actions.append(temp)
-
-print weights
-np.savetxt("KSS_approx_actions.csv",store_actions, delimiter=",")
-np.savetxt("KSS_approx_port.csv",portfolio, delimiter=",")
+    # TESTFILE = 'BA_2Y_14_15.csv'
+    # data_set = loadData(TESTFILE)
 
 
+    # print 'im testing'
+    # print weights
+    stocks_held = START_STOCK
+    bank_balance = START_BANK
+    portfolio = []
+    store_actions =[]
+    for cur_time in range(LIMIT_training,len(data_set)):
+        action = getBestAction(cur_time)
+        tradeStocks(cur_time, action)
+        # print(action, stocks_held, bank_balance, portfolio[-1])
+        temp= 0
+        if action == 'buy':
+            temp = 1
+        elif action == 'sell':
+            temp = -1
+        store_actions.append(temp)
+    total += portfolio[-1] - portfolio[0]
+    print portfolio[-1] - portfolio[0]
+    # print weights
+    ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
+
+    np.savetxt("BA_approx_actions.csv",store_actions, delimiter=",")
+    np.savetxt("BA_approx_port.csv",portfolio, delimiter=",")
+print "average =", total*1.0/50
+print INFILE, "Approx- Q"
 ########################################
 # DISPLAY CODE 
 ########################################
 
 # Optional plot for reference
-fig = plt.figure()
-ax1 = fig.add_subplot(211)
-ax2 = fig.add_subplot(212)
-stock = 'KSS_2Y_14_16.csv'
+
+
+stock = 'BA_2Y_14_15.csv'
 stockdata = loadData(stock)
 ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
-ax2.plot(range(len(portfolio)), portfolio, label='Portfolio Value')
 # ax1.axis([0,600,0,160])
 # ax2.axis([0,600,0,np.max(portfolio)])
 plt.show()

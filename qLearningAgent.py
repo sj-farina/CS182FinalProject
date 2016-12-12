@@ -14,7 +14,7 @@ import random as rd
 import math, collections, sys
 
 # Pick the file to read from
-INFILE = 'KSS_16Y_00_16.csv'
+# INFILE = 'KSS_16Y_00_16.csv'
 
 
 # Initialize the starting number of stocks and the starting bank balance
@@ -45,12 +45,12 @@ def loadData(file):
 def getShortTermTrend(cur_time):
     # # if this is the first data point, assume a slope of zero
     # Multiply by 100, set to int, equiv of truncating at 1 decimals
-    slope = int((data_set[cur_time] - data_set[cur_time - LOOKBACK])*3)
+    slope = int((data_set[cur_time] - data_set[cur_time - LOOKBACK])*5)
     # Cap -10 to 10 to limit state space
-    if slope > 20:
-        return 20
-    if slope < -20:
-        return -20
+    if slope > 10:
+        return 10
+    if slope < -10:
+        return -10
     return slope
 
 # Determine which actions are available given stocks held and bank balance
@@ -164,7 +164,7 @@ def tradeStocks(cur_time, action):
 
 EPSILON = 0.2
 ALPHA = 0.8
-DISCOUNT = 0.05
+DISCOUNT = 0
 ITERATIONS = 100
 # looahead gives the reward
 LOOKAHEAD = 5
@@ -179,7 +179,7 @@ ax2 = fig.add_subplot(312)
 
 total = 0
 for each in range(50):
-    LIMIT_training = 3269 # train on data 2001-2013, test on 2014-2015
+    LIMIT_training = 3270 # train on data 2001-2013, test on 2014-2015
     INFILE = 'BA_15Y_01_15.csv'
     data_set = loadData(INFILE)
 
@@ -221,7 +221,8 @@ for each in range(50):
     stock = 'BA_2Y_14_15.csv'
     stockdata = loadData(stock)
     ax1.plot(range(len(stockdata)), stockdata, color='r', label='Stock Price')
-print "average of 20 trials =", total/50.0
+print INFILE, "Q-learning"
+print "average of 50 trials =", total/50.0
 # ax2.legend(alpha, loc='best')
 # plt.show()
 
@@ -238,7 +239,7 @@ START_BANK = 10000
 START_STOCK = 0
 # INFILE = 'BA_6M_15.csv'
 # INFILE = 'BA_1Y_15.csv'
-INFILE = 'KSS_2Y_14_16.csv'
+INFILE = 'BA_2Y_14_15.csv'
 # INFILE = 'BA_5Y_11_15.csv'
 # INFILE = 'BA_15Y_01_15.csv'
 
@@ -328,18 +329,19 @@ ax3.set_title("Portfolio Value")
 ax3.set_xlabel('time')
 ax3.set_ylabel('value')
 
-
-for each in range(100):
+rand_total = 0
+for each in range(50):
     rand_port = randomWalk(stock)
     ax3.plot(range(len(rand_port)), rand_port, label='Portfolio Value')
 #     print rand_port[-1] - rand_port[0]
-
+    rand_total += rand_port[-1]-10000
+    print rand_port[-1]-10000
 # print stock[-1][1] -  stock[0][1]
 # leg = ax3.legend()
 # leg = ax2.legend()
 plt.show()
 
-
+print "average_random=", rand_total/50.0
 
 
 
